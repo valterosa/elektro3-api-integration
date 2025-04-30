@@ -11,7 +11,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/build/server/nodejs-eyJydW50aW1lIjoibm9kZWpzIn0/index.js"
     }
   ]
 }
