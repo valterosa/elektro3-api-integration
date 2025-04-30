@@ -9,7 +9,13 @@ import {
   BlockStack,
   Text,
   Divider,
+  Link,
+  Icon,
+  TextContainer,
+  Box,
+  InlineStack,
 } from "@shopify/polaris";
+import { CircleAlertMajor, DiamondAlertMajor } from "@shopify/polaris-icons";
 import { json } from "@remix-run/node";
 import {
   useLoaderData,
@@ -26,9 +32,32 @@ import {
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
 
+  const envVars = {
+    elektro3ApiUrl: process.env.ELEKTRO3_API_URL,
+    elektro3ClientId: process.env.ELEKTRO3_CLIENT_ID
+      ? "Configurado"
+      : "Não configurado",
+    elektro3SecretKey: process.env.ELEKTRO3_SECRET_KEY
+      ? "Configurado"
+      : "Não configurado",
+    elektro3Username: process.env.ELEKTRO3_USERNAME
+      ? "Configurado"
+      : "Não configurado",
+    elektro3Password: process.env.ELEKTRO3_PASSWORD
+      ? "Configurado"
+      : "Não configurado",
+    shopifyShop: process.env.SHOPIFY_SHOP,
+  };
+
   return json({
-    elektro3ApiUrl: process.env.ELEKTRO3_API_URL || "Not configured",
-    shopifyShop: process.env.SHOPIFY_SHOP || "Not configured",
+    ...envVars,
+    isElektro3Configured: Boolean(
+      process.env.ELEKTRO3_API_URL &&
+        process.env.ELEKTRO3_CLIENT_ID &&
+        process.env.ELEKTRO3_SECRET_KEY &&
+        process.env.ELEKTRO3_USERNAME &&
+        process.env.ELEKTRO3_PASSWORD,
+    ),
   });
 };
 
@@ -39,7 +68,6 @@ export const action = async ({ request }) => {
 
   try {
     if (action === "test-elektro3") {
-      // Test Elektro3 API connection
       try {
         await authenticateElektro3();
         return json({
@@ -57,7 +85,6 @@ export const action = async ({ request }) => {
         });
       }
     } else if (action === "test-shopify") {
-      // Test Shopify API connection
       try {
         const response = await admin.graphql(
           `query {
@@ -90,7 +117,6 @@ export const action = async ({ request }) => {
         });
       }
     } else if (action === "test-elektro3-products") {
-      // Test Elektro3 API product retrieval
       try {
         const { products, categories } = await fetchProductsFromElektro3API({
           limit: 5,
@@ -142,7 +168,6 @@ export default function ConnectionTest() {
   const [shopifyTestResult, setShopifyTestResult] = useState(null);
   const [productsTestResult, setProductsTestResult] = useState(null);
 
-  // Update state when action data is received
   if (actionData && !isLoading) {
     if (
       actionData.action === "test-elektro3" &&
@@ -180,6 +205,33 @@ export default function ConnectionTest() {
     submit(formData, { method: "post" });
   };
 
+  const renderConfigurationWarning = () => {
+    if (loaderData.isElektro3Configured) return null;
+
+    return (
+      <Banner
+        title="Configuração incompleta da API Elektro3"
+        status="warning"
+        icon={DiamondAlertMajor}
+      >
+        <p>
+          Uma ou mais variáveis de ambiente necessárias para a conexão com a API
+          Elektro3 não estão configuradas.
+        </p>
+        <p>Verifique as seguintes variáveis no seu ambiente:</p>
+        <ul>
+          <li>
+            ELEKTRO3_API_URL: {loaderData.elektro3ApiUrl || "Não configurado"}
+          </li>
+          <li>ELEKTRO3_CLIENT_ID: {loaderData.elektro3ClientId}</li>
+          <li>ELEKTRO3_SECRET_KEY: {loaderData.elektro3SecretKey}</li>
+          <li>ELEKTRO3_USERNAME: {loaderData.elektro3Username}</li>
+          <li>ELEKTRO3_PASSWORD: {loaderData.elektro3Password}</li>
+        </ul>
+      </Banner>
+    );
+  };
+
   const renderTestResult = (result) => {
     if (!result) return null;
 
@@ -188,7 +240,40 @@ export default function ConnectionTest() {
         title={result.message}
         status={result.success ? "success" : "critical"}
       >
-        {result.details && <p>{result.details}</p>}
+        {result.details && (
+          <TextContainer>
+            <p>
+              <strong>Detalhes do erro:</strong> {result.details}
+            </p>
+
+            {result.details.includes("Not Found") && (
+              <Box paddingBlockStart="4">
+                <Text variant="bodySm" as="p" color="subdued">
+                  <Icon source={CircleAlertMajor} color="warning" />
+                  <span style={{ marginLeft: "8px" }}>
+                    O erro "Not Found" geralmente indica que a URL da API está
+                    incorreta ou o endpoint de autenticação não é o esperado.
+                    Verifique:
+                  </span>
+                </Text>
+                <ul>
+                  <li>
+                    Se a URL da API está correta (atualmente:{" "}
+                    {loaderData.elektro3ApiUrl})
+                  </li>
+                  <li>
+                    Se o endpoint de autenticação é realmente "/auth" ou se
+                    deveria ser outro caminho
+                  </li>
+                  <li>
+                    Se a API está acessível a partir do servidor onde esta
+                    aplicação está hospedada
+                  </li>
+                </ul>
+              </Box>
+            )}
+          </TextContainer>
+        )}
         {result.shopName && <p>Shop name: {result.shopName}</p>}
         {result.shopUrl && <p>Shop URL: {result.shopUrl}</p>}
         {result.productCount && <p>Products found: {result.productCount}</p>}
@@ -214,11 +299,23 @@ export default function ConnectionTest() {
     >
       <Layout>
         <Layout.Section>
+          {renderConfigurationWarning()}
+
           <Card>
             <BlockStack gap="4">
               <Text variant="headingMd">Configuration</Text>
               <BlockStack gap="2">
-                <Text>Elektro3 API URL: {loaderData.elektro3ApiUrl}</Text>
+                <Text>
+                  Elektro3 API URL:{" "}
+                  {loaderData.elektro3ApiUrl || "Não configurado"}
+                </Text>
+                <InlineStack gap="2">
+                  <Text>Elektro3 Credentials:</Text>
+                  <Text>Client ID: {loaderData.elektro3ClientId}</Text>
+                  <Text>Secret Key: {loaderData.elektro3SecretKey}</Text>
+                  <Text>Username: {loaderData.elektro3Username}</Text>
+                  <Text>Password: {loaderData.elektro3Password}</Text>
+                </InlineStack>
                 <Text>Shopify Shop: {loaderData.shopifyShop}</Text>
               </BlockStack>
             </BlockStack>

@@ -11,31 +11,136 @@ const ELEKTRO3_SECRET_KEY = process.env.ELEKTRO3_SECRET_KEY;
 const ELEKTRO3_USERNAME = process.env.ELEKTRO3_USERNAME;
 const ELEKTRO3_PASSWORD = process.env.ELEKTRO3_PASSWORD;
 
+// Logs para depuração
+console.log("Elektro3 API URL:", ELEKTRO3_API_URL);
+console.log("Elektro3 credentials configured:", {
+  hasClientId: !!ELEKTRO3_CLIENT_ID,
+  hasSecretKey: !!ELEKTRO3_SECRET_KEY,
+  hasUsername: !!ELEKTRO3_USERNAME,
+  hasPassword: !!ELEKTRO3_PASSWORD,
+});
+
 /**
  * Autenticar na API da Elektro3
  * @returns {Promise<string>} Token de acesso
  */
 export async function authenticate() {
   try {
-    const response = await fetch(`${ELEKTRO3_API_URL}/auth`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        clientId: ELEKTRO3_CLIENT_ID,
-        secretKey: ELEKTRO3_SECRET_KEY,
-        username: ELEKTRO3_USERNAME,
-        password: ELEKTRO3_PASSWORD,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Authentication failed: ${response.statusText}`);
+    // Verificar se todas as credenciais estão configuradas
+    if (
+      !ELEKTRO3_CLIENT_ID ||
+      !ELEKTRO3_SECRET_KEY ||
+      !ELEKTRO3_USERNAME ||
+      !ELEKTRO3_PASSWORD
+    ) {
+      throw new Error(
+        "Missing Elektro3 API credentials. Please check your environment variables.",
+      );
     }
 
-    const data = await response.json();
-    return data.accessToken;
+    console.log(
+      "Attempting to authenticate with Elektro3 API at:",
+      `${ELEKTRO3_API_URL}/auth`,
+    );
+
+    // Tentativa principal com endpoint /auth
+    try {
+      const response = await fetch(`${ELEKTRO3_API_URL}/auth`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientId: ELEKTRO3_CLIENT_ID,
+          secretKey: ELEKTRO3_SECRET_KEY,
+          username: ELEKTRO3_USERNAME,
+          password: ELEKTRO3_PASSWORD,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Authentication successful with /auth endpoint");
+        return data.accessToken;
+      }
+
+      console.log(
+        "First authentication attempt failed, status:",
+        response.status,
+        response.statusText,
+      );
+      // Se a primeira tentativa falhar, não lance erro ainda, tente o formato alternativo
+    } catch (err) {
+      console.log("Error with first authentication attempt:", err.message);
+      // Continue para a próxima tentativa
+    }
+
+    // Segunda tentativa com endpoint /api/auth (formato comum em APIs)
+    try {
+      console.log("Attempting alternative endpoint: /api/auth");
+      const response = await fetch(`${ELEKTRO3_API_URL}/api/auth`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientId: ELEKTRO3_CLIENT_ID,
+          secretKey: ELEKTRO3_SECRET_KEY,
+          username: ELEKTRO3_USERNAME,
+          password: ELEKTRO3_PASSWORD,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Authentication successful with /api/auth endpoint");
+        return data.accessToken;
+      }
+
+      console.log(
+        "Second authentication attempt failed, status:",
+        response.status,
+        response.statusText,
+      );
+    } catch (err) {
+      console.log("Error with second authentication attempt:", err.message);
+    }
+
+    // Terceira tentativa com formato de corpo alternativo (alguns sistemas usam nomes de campos diferentes)
+    try {
+      console.log("Attempting with alternative request body format");
+      const response = await fetch(`${ELEKTRO3_API_URL}/auth`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          client_id: ELEKTRO3_CLIENT_ID,
+          secret_key: ELEKTRO3_SECRET_KEY,
+          user: ELEKTRO3_USERNAME,
+          password: ELEKTRO3_PASSWORD,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Authentication successful with alternative body format");
+        return data.accessToken;
+      }
+
+      console.log(
+        "Third authentication attempt failed, status:",
+        response.status,
+        response.statusText,
+      );
+    } catch (err) {
+      console.log("Error with third authentication attempt:", err.message);
+    }
+
+    // Se todas as tentativas falharem, lance um erro detalhado
+    throw new Error(
+      "Failed to authenticate with Elektro3 API after multiple attempts. Please check API URL and credentials.",
+    );
   } catch (error) {
     console.error("Error authenticating with Elektro3 API:", error);
     throw error;
