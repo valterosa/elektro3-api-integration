@@ -21,7 +21,7 @@ import { authenticate } from "../shopify.server";
 import {
   fetchProductsFromElektro3API,
   authenticate as authenticateElektro3,
-} from "../../lib/elektro3-api.server";
+} from "../lib/elektro3-api.server";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
