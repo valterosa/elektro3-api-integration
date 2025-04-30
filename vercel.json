@@ -2,5 +2,7 @@
   "version": 2,
   "buildCommand": "cd elektro3-api-module && npm install && npm run build",
   "outputDirectory": "elektro3-api-module/build",
-  "installCommand": "cd elektro3-api-module && npm install"
+  "installCommand": "cd elektro3-api-module && npm install",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.js" }],
+  "framework": "remix"
 }
