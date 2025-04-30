@@ -3,7 +3,7 @@
 client_id = "ae8937bac07720749eeec3a91647f722"
 name = "elektro3-api-module"
 handle = "elektro3-api-module"
-application_url = "https://walter-licenses-forces-mistake.trycloudflare.com"
+application_url = "https://elektro3-api-integration.vercel.app"
 embedded = true
 
 [build]
@@ -27,9 +27,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://walter-licenses-forces-mistake.trycloudflare.com/auth/callback",
-  "https://walter-licenses-forces-mistake.trycloudflare.com/auth/shopify/callback",
-  "https://walter-licenses-forces-mistake.trycloudflare.com/api/auth/callback"
+  "https://elektro3-api-integration.vercel.app/auth/callback",
+  "https://elektro3-api-integration.vercel.app/auth/shopify/callback",
+  "https://elektro3-api-integration.vercel.app/api/auth/callback"
 ]
 
 [pos]
