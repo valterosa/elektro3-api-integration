@@ -15,7 +15,7 @@ const ELEKTRO3_PASSWORD = process.env.ELEKTRO3_PASSWORD;
  * Autenticar na API da Elektro3
  * @returns {Promise<string>} Token de acesso
  */
-async function authenticate() {
+export async function authenticate() {
   try {
     const response = await fetch(`${ELEKTRO3_API_URL}/auth`, {
       method: "POST",
