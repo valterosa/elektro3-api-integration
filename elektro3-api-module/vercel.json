@@ -1,4 +1,5 @@
 {
   "framework": "remix",
-  "buildCommand": "npm install --include=dev && npm run build"
+  "buildCommand": "npm install --include=dev && npm run build",
+  "rewrites": [{ "source": "(.*)", "destination": "/" }]
 }
