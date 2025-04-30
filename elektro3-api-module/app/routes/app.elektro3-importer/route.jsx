@@ -63,66 +63,117 @@ export const action = async ({ request }) => {
   const formData = await request.formData();
   const productsToImport = JSON.parse(formData.get("products"));
 
-  // Here you would implement the import logic
-  // For example:
   try {
+    const results = [];
+
     // Import products to Shopify
     for (const product of productsToImport) {
-      // Transform Elektro3 product to Shopify product format
-      const shopifyProduct = {
-        title: product.nombre,
-        body_html: product.descripcion,
-        vendor: product.marca,
-        product_type: product.subfamilia,
-        status: "active",
-        images: [
-          {
-            src: product.imagen,
-          },
-        ],
-        variants: [
-          {
-            price: product.precio,
-            sku: product.codigo,
-            barcode: product.ean13,
-            inventory_quantity: product.stock,
-            weight: product.peso,
-          },
-        ],
-      };
+      try {
+        // Transform Elektro3 product to Shopify product format
+        const shopifyProduct = {
+          title: product.nombre || "Produto sem nome",
+          body_html: product.descripcion || "",
+          vendor: product.marca || "Elektro3",
+          product_type: product.subfamilia || product.categoria || "",
+          tags: `${product.codigo_familia || ""}, ${product.subfamilia || ""}`.trim(),
+          status: "active",
+          variants: [
+            {
+              price: product.precio?.toString() || "0.00",
+              inventory_quantity: product.stock || 0,
+              requires_shipping: true,
+              sku: product.codigo || "",
+              barcode: product.ean13 || "",
+              weight: product.peso || 0,
+              weight_unit: "kg",
+            },
+          ],
+          images: [],
+        };
 
-      // Create product in Shopify
-      await admin.graphql(
-        `
-        mutation productCreate($input: ProductInput!) {
-          productCreate(input: $input) {
-            product {
-              id
-              title
+        // Add main image if it exists
+        if (product.imagen) {
+          shopifyProduct.images.push({
+            src: product.imagen,
+          });
+        }
+
+        // Add additional images if they exist
+        if (
+          product.imagenes_adicionales &&
+          Array.isArray(product.imagenes_adicionales)
+        ) {
+          product.imagenes_adicionales.forEach((img) => {
+            if (img.imagen) {
+              shopifyProduct.images.push({
+                src: img.imagen,
+              });
             }
-            userErrors {
-              field
-              message
+          });
+        }
+
+        // Create product in Shopify
+        const response = await admin.graphql(
+          `
+          mutation productCreate($input: ProductInput!) {
+            productCreate(input: $input) {
+              product {
+                id
+                title
+              }
+              userErrors {
+                field
+                message
+              }
             }
-          }
-        }`,
-        {
-          variables: {
-            input: shopifyProduct,
+          }`,
+          {
+            variables: {
+              input: shopifyProduct,
+            },
           },
-        },
-      );
+        );
+
+        const responseJson = await response.json();
+        const { productCreate } = responseJson.data;
+
+        if (productCreate.userErrors.length > 0) {
+          throw new Error(productCreate.userErrors[0].message);
+        }
+
+        results.push({
+          elektro3Id: product.codigo,
+          shopifyId: productCreate.product.id,
+          title: shopifyProduct.title,
+          status: "success",
+        });
+      } catch (productError) {
+        console.error(
+          `Error importing product ${product.codigo || "unknown"}:`,
+          productError,
+        );
+        results.push({
+          elektro3Id: product.codigo,
+          error: productError.message,
+          status: "error",
+        });
+      }
     }
 
     return json({
       success: true,
-      count: productsToImport.length,
+      message: `Import completed. ${results.filter((r) => r.status === "success").length} products successfully imported.`,
+      total: productsToImport.length,
+      success: results.filter((r) => r.status === "success").length,
+      errors: results.filter((r) => r.status === "error").length,
+      results: results,
     });
   } catch (error) {
     console.error("Error importing products:", error);
     return json({
       success: false,
       error: "Failed to import products to Shopify",
+      details: error.message,
     });
   }
 };
