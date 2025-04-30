@@ -1,3 +1,9 @@
 import { flatRoutes } from "@remix-run/fs-routes";
 
-export default flatRoutes();
+export default flatRoutes({
+  exclude: [
+    "webhooks.app.scopes_update",
+    "webhooks.app.uninstalled",
+    "auth.$"
+  ]
+});

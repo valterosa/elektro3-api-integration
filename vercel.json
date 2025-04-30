@@ -1,7 +1,7 @@
 {
   "version": 2,
   "buildCommand": "cd elektro3-api-module && npm install --include=dev && npm run build",
-  "outputDirectory": "elektro3-api-module/build/client",
+  "outputDirectory": "elektro3-api-module/build",
   "routes": [
     {
       "src": "/build/(.*)",
