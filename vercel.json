@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "cd elektro3-api-module && npm install --production=false && npm run build",
+  "buildCommand": "cd elektro3-api-module && npm install --production=false && npm install @remix-run/dev@latest && npm run build",
   "outputDirectory": "elektro3-api-module/build",
   "installCommand": "cd elektro3-api-module && npm install --production=false",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.js" }],
