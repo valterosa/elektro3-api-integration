@@ -18,7 +18,7 @@ import {
 import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
 import { json } from "@remix-run/node";
 import { authenticate } from "../../shopify.server";
-import { fetchProductsFromElektro3API } from "../../../lib/elektro3-api.server";
+import { fetchProductsFromElektro3API } from "../../lib/elektro3-api.server";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
