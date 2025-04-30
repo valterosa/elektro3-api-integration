@@ -1,5 +1,17 @@
 {
   "framework": "remix",
-  "buildCommand": "npm install --include=dev && npm run build",
-  "rewrites": [{ "source": "(.*)", "destination": "/" }]
+  "routes": [
+    {
+      "src": "/build/(.*)",
+      "dest": "/build/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/favicon.ico"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
 }

@@ -1,5 +1,19 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/elektro3-api-module/$1" }],
+  "version": 2,
   "buildCommand": "cd elektro3-api-module && npm install --include=dev && npm run build",
-  "outputDirectory": "elektro3-api-module/build"
+  "outputDirectory": "elektro3-api-module/build/client",
+  "routes": [
+    {
+      "src": "/build/(.*)",
+      "dest": "/build/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/favicon.ico"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
 }
