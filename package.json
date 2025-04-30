@@ -1,0 +1,16 @@
+{
+  "name": "elektro3-api-integration",
+  "version": "1.0.0",
+  "description": "Shopify app for Elektro3 API integration",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@shopify/shopify-api": "^11.12.0",
+    "@shopify/shopify-app-express": "^5.0.17",
+    "axios": "^1.9.0",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2"
+  }
+}
