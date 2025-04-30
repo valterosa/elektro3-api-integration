@@ -1,15 +1,12 @@
 {
   "version": 2,
-  "builds": [
+  "buildCommand": "cd elektro3-api-module && npm install && npm run build",
+  "outputDirectory": "elektro3-api-module/build",
+  "framework": "remix",
+  "rewrites": [
     {
-      "src": "index.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "index.js"
+      "source": "/(.*)",
+      "destination": "/elektro3-api-module/$1"
     }
   ]
 }
