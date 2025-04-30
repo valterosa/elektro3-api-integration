@@ -1,10 +1,15 @@
 require("dotenv").config();
 const express = require("express");
 const { shopifyApi, LATEST_API_VERSION } = require("@shopify/shopify-api");
-// Add the Node adapter import
 const { restResources } = require("@shopify/shopify-api/rest/admin/2024-04");
 const { shopifyApiNodeAdapter } = require("@shopify/shopify-api/adapters/node");
 const Elektro3Api = require("./elektro3-api");
+const path = require("path");
+const { createRequestHandler } = require("@remix-run/express");
+const { installGlobals } = require("@remix-run/node");
+
+// Instala globais do Remix
+installGlobals();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,7 +25,6 @@ const elektro3Client = new Elektro3Api({
 
 // Configuração da API do Shopify com credenciais reais
 const shopifyClient = shopifyApi({
-  // Add the Node adapter
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET_KEY,
   scopes: ["write_products", "read_products"],
@@ -30,9 +34,7 @@ const shopifyClient = shopifyApi({
   ),
   apiVersion: LATEST_API_VERSION,
   isEmbeddedApp: false,
-  // Para acesso privado à API (usando token de acesso privado)
   adminApiAccessToken: process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN,
-  // Add the adapter
   customAdapterFn: shopifyApiNodeAdapter,
   restResources,
 });
@@ -42,10 +44,21 @@ const shopify = shopifyClient.rest;
 // Middleware to parse JSON requests
 app.use(express.json());
 
+// Servir arquivos estáticos do build da aplicação Remix
+app.use(
+  "/build",
+  express.static(path.join(__dirname, "elektro3-api-module/build/client"))
+);
+
+// Servir outros arquivos estáticos
+app.use(
+  express.static(path.join(__dirname, "elektro3-api-module/public"), {
+    index: false,
+  })
+);
+
 // Função para transformar produtos do formato Elektro3 para o formato Shopify
 function mapElektro3ProductToShopify(elektro3Product) {
-  // Mapear os campos do produto Elektro3 para o formato que o Shopify espera
-  // Você precisará ajustar isso com base na estrutura real dos dados da Elektro3
   return {
     title: elektro3Product.name || elektro3Product.title,
     body_html: elektro3Product.description || "",
@@ -82,7 +95,6 @@ async function createShopifyProduct(productData) {
       JSON.stringify(productData.title)
     );
 
-    // Usar a API REST do Shopify para criar um produto
     const response = await shopify.Product.create({
       session,
       fields: productData,
@@ -101,15 +113,11 @@ app.post("/import-products", async (req, res) => {
   try {
     console.log("Iniciando importação de produtos da Elektro3...");
 
-    // Parâmetros de busca opcionais
     const searchParams = req.body.searchParams || {};
-    // Limitar quantidade de produtos por importação (opcional)
     const limit = req.body.limit || 50;
 
-    // Buscar produtos da API da Elektro3
     const elektro3Response = await elektro3Client.getProducts(searchParams);
 
-    // Verificar se a resposta da API contém produtos
     if (
       !elektro3Response ||
       elektro3Response.status !== 1 ||
@@ -129,17 +137,13 @@ app.post("/import-products", async (req, res) => {
       JSON.stringify(elektro3Products[0]?.nombre || {}, null, 2)
     );
 
-    // Limitar a quantidade de produtos a serem importados
     const productsToImport = elektro3Products.slice(0, limit);
     console.log(`Importando ${productsToImport.length} produtos...`);
 
-    // Array para armazenar resultados da importação
     const importResults = [];
 
-    // Importar cada produto para o Shopify
     for (const elektro3Product of productsToImport) {
       try {
-        // Transformar o produto para o formato do Shopify
         const shopifyProduct = {
           title: elektro3Product.nombre || "Produto sem nome",
           body_html: elektro3Product.descripcion || "",
@@ -160,14 +164,12 @@ app.post("/import-products", async (req, res) => {
           images: [],
         };
 
-        // Adicionar imagem principal se existir
         if (elektro3Product.imagen) {
           shopifyProduct.images.push({
             src: elektro3Product.imagen,
           });
         }
 
-        // Adicionar imagens adicionais se existirem
         if (
           elektro3Product.imagenes_adicionales &&
           Array.isArray(elektro3Product.imagenes_adicionales)
@@ -181,7 +183,6 @@ app.post("/import-products", async (req, res) => {
           });
         }
 
-        // Criar o produto no Shopify
         const result = await createShopifyProduct(shopifyProduct);
 
         importResults.push({
@@ -208,7 +209,6 @@ app.post("/import-products", async (req, res) => {
       }
     }
 
-    // Retornar os resultados da importação
     res.status(200).json({
       status: "success",
       message: `Importação concluída. ${
@@ -232,7 +232,6 @@ app.post("/import-products", async (req, res) => {
 // Endpoint para testar a conexão com a API da Elektro3
 app.get("/elektro3-connection-test", async (req, res) => {
   try {
-    // Tentar autenticar com a API da Elektro3
     await elektro3Client.authenticate();
     res.status(200).json({
       status: "success",
@@ -251,7 +250,6 @@ app.get("/elektro3-connection-test", async (req, res) => {
 // Adicionar suporte ao método POST no endpoint de teste de conexão
 app.post("/elektro3-connection-test", async (req, res) => {
   try {
-    // Tentar autenticar com a API da Elektro3
     await elektro3Client.authenticate();
     res.status(200).json({
       status: "success",
@@ -270,7 +268,6 @@ app.post("/elektro3-connection-test", async (req, res) => {
 // Endpoint para testar a conexão com o Shopify
 app.get("/shopify-connection-test", async (req, res) => {
   try {
-    // Testar a conexão com o Shopify buscando alguns produtos
     const products = await shopify.Product.all({
       session: {
         shop: process.env.SHOPIFY_SHOP.replace(/^https?:\/\//, "").replace(
@@ -279,7 +276,7 @@ app.get("/shopify-connection-test", async (req, res) => {
         ),
         accessToken: process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN,
       },
-      limit: 5, // Buscar apenas 5 produtos para testar
+      limit: 5,
     });
 
     res.status(200).json({
@@ -305,7 +302,6 @@ app.post("/import-product/:productId", async (req, res) => {
 
     console.log(`Iniciando importação do produto ${productId} da Elektro3...`);
 
-    // Buscar o produto específico da Elektro3
     const elektro3Product = await elektro3Client.getProductById(productId);
 
     if (!elektro3Product) {
@@ -315,10 +311,8 @@ app.post("/import-product/:productId", async (req, res) => {
       });
     }
 
-    // Transformar o produto para o formato do Shopify
     const shopifyProduct = mapElektro3ProductToShopify(elektro3Product);
 
-    // Criar o produto no Shopify
     const result = await shopify.Product.create({
       session: {
         shop: process.env.SHOPIFY_SHOP.replace(/^https?:\/\//, "").replace(
@@ -349,10 +343,8 @@ app.post("/import-product/:productId", async (req, res) => {
 // Endpoint para listar categorias da Elektro3
 app.get("/elektro3-categories", async (req, res) => {
   try {
-    // Primeiro autenticar com a API da Elektro3
     await elektro3Client.authenticate();
 
-    // Buscar categorias da API da Elektro3
     const categories = await elektro3Client.getCategories();
 
     res.status(200).json({
@@ -374,14 +366,12 @@ app.get("/elektro3-categories", async (req, res) => {
 app.post("/import-products-by-category/:categoryId", async (req, res) => {
   try {
     const { categoryId } = req.params;
-    // Limitar quantidade de produtos por importação (opcional)
     const limit = req.body.limit || 20;
 
     console.log(
       `Iniciando importação de produtos da categoria ${categoryId}...`
     );
 
-    // Buscar produtos da categoria específica
     const elektro3Products = await elektro3Client.getProductsByCategory(
       categoryId
     );
@@ -397,20 +387,15 @@ app.post("/import-products-by-category/:categoryId", async (req, res) => {
       `Encontrados ${elektro3Products.length} produtos na categoria ${categoryId}`
     );
 
-    // Limitar a quantidade de produtos a serem importados
     const productsToImport = elektro3Products.slice(0, limit);
     console.log(`Importando ${productsToImport.length} produtos...`);
 
-    // Array para armazenar resultados da importação
     const importResults = [];
 
-    // Importar cada produto para o Shopify
     for (const elektro3Product of productsToImport) {
       try {
-        // Transformar o produto para o formato do Shopify
         const shopifyProduct = mapElektro3ProductToShopify(elektro3Product);
 
-        // Criar o produto no Shopify
         const result = await shopify.Product.create({
           session: {
             shop: process.env.SHOPIFY_SHOP.replace(/^https?:\/\//, "").replace(
@@ -444,7 +429,6 @@ app.post("/import-products-by-category/:categoryId", async (req, res) => {
       }
     }
 
-    // Retornar os resultados da importação
     res.status(200).json({
       status: "success",
       message: `Importação de produtos da categoria ${categoryId} concluída`,
@@ -470,17 +454,14 @@ app.post("/import-products-by-category/:categoryId", async (req, res) => {
 // Endpoint para testar a estrutura de resposta de produtos da Elektro3
 app.get("/elektro3-products-test", async (req, res) => {
   try {
-    // Primeiro autenticar com a API da Elektro3
     await elektro3Client.authenticate();
 
-    // Buscar produtos da API da Elektro3 sem filtros
     const response = await elektro3Client.request(
       "post",
       "/api/get-productos",
       {}
     );
 
-    // Analisar e logar a estrutura da resposta
     console.log(
       "Resposta da API Elektro3 (get-productos):",
       JSON.stringify(
@@ -499,7 +480,6 @@ app.get("/elektro3-products-test", async (req, res) => {
       )
     );
 
-    // Retornar apenas a estrutura para análise
     res.status(200).json({
       status: "success",
       message: "Estrutura de resposta da API Elektro3",
@@ -528,6 +508,15 @@ app.get("/elektro3-products-test", async (req, res) => {
 app.get("/", (req, res) => {
   res.send("Elektro3 API Integration App is running!");
 });
+
+// Definir o Remix como handler para todas as outras rotas
+app.all(
+  "*",
+  createRequestHandler({
+    build: require("./elektro3-api-module/build/server/index.js"),
+    mode: process.env.NODE_ENV,
+  })
+);
 
 // Start server
 app.listen(PORT, () => {
