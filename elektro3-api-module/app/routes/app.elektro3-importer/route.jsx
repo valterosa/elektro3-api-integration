@@ -161,10 +161,10 @@ export const action = async ({ request }) => {
     }
 
     return json({
-      success: true,
+      status: "success",
       message: `Import completed. ${results.filter((r) => r.status === "success").length} products successfully imported.`,
       total: productsToImport.length,
-      success: results.filter((r) => r.status === "success").length,
+      successCount: results.filter((r) => r.status === "success").length,
       errors: results.filter((r) => r.status === "error").length,
       results: results,
     });

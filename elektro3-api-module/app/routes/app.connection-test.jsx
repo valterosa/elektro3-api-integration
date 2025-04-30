@@ -6,7 +6,7 @@ import {
   Button,
   Banner,
   SkeletonBodyText,
-  VerticalStack,
+  BlockStack,
   Text,
   Divider,
 } from "@shopify/polaris";
@@ -215,19 +215,19 @@ export default function ConnectionTest() {
       <Layout>
         <Layout.Section>
           <Card>
-            <VerticalStack gap="4">
+            <BlockStack gap="4">
               <Text variant="headingMd">Configuration</Text>
-              <VerticalStack gap="2">
+              <BlockStack gap="2">
                 <Text>Elektro3 API URL: {loaderData.elektro3ApiUrl}</Text>
                 <Text>Shopify Shop: {loaderData.shopifyShop}</Text>
-              </VerticalStack>
-            </VerticalStack>
+              </BlockStack>
+            </BlockStack>
           </Card>
         </Layout.Section>
 
         <Layout.Section>
           <Card>
-            <VerticalStack gap="4">
+            <BlockStack gap="4">
               <Text variant="headingMd">Elektro3 API Connection</Text>
               <div>
                 <Button
@@ -246,13 +246,13 @@ export default function ConnectionTest() {
               ) : (
                 renderTestResult(elektro3TestResult)
               )}
-            </VerticalStack>
+            </BlockStack>
           </Card>
         </Layout.Section>
 
         <Layout.Section>
           <Card>
-            <VerticalStack gap="4">
+            <BlockStack gap="4">
               <Text variant="headingMd">Elektro3 Products</Text>
               <div>
                 <Button
@@ -273,13 +273,13 @@ export default function ConnectionTest() {
               ) : (
                 renderTestResult(productsTestResult)
               )}
-            </VerticalStack>
+            </BlockStack>
           </Card>
         </Layout.Section>
 
         <Layout.Section>
           <Card>
-            <VerticalStack gap="4">
+            <BlockStack gap="4">
               <Text variant="headingMd">Shopify API Connection</Text>
               <div>
                 <Button
@@ -298,7 +298,7 @@ export default function ConnectionTest() {
               ) : (
                 renderTestResult(shopifyTestResult)
               )}
-            </VerticalStack>
+            </BlockStack>
           </Card>
         </Layout.Section>
       </Layout>
