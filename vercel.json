@@ -1,19 +1,27 @@
 {
   "version": 2,
-  "buildCommand": "cd elektro3-api-module && npm install --include=dev && npm run build",
-  "outputDirectory": "elektro3-api-module/build",
+  "builds": [
+    {
+      "src": "api/index.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "elektro3-api-module/package.json",
+      "use": "@vercel/node"
+    }
+  ],
   "routes": [
     {
       "src": "/build/(.*)",
-      "dest": "/build/$1"
+      "dest": "/elektro3-api-module/build/client/$1"
     },
     {
       "src": "/favicon.ico",
-      "dest": "/favicon.ico"
+      "dest": "/elektro3-api-module/public/favicon.ico"
     },
     {
       "src": "/(.*)",
-      "dest": "/elektro3-api-module/build/server/nodejs-eyJydW50aW1lIjoibm9kZWpzIn0/index.js"
+      "dest": "/api/index.js"
     }
   ]
 }

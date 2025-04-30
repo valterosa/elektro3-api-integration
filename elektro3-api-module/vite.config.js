@@ -6,9 +6,7 @@ import { vercelPreset } from "@vercel/remix/vite";
 
 installGlobals({ nativeFetch: true });
 
-// Related: https://github.com/remix-run/remix/issues/2835#issuecomment-1144102176
-// Replace the HOST env var with SHOPIFY_APP_URL so that it doesn't break the remix server. The CLI will eventually
-// stop passing in HOST, so we can remove this workaround after the next major release.
+// Replace the HOST env var with SHOPIFY_APP_URL (workaround)
 if (
   process.env.HOST &&
   (!process.env.SHOPIFY_APP_URL ||
@@ -47,14 +45,24 @@ export default defineConfig({
     port: Number(process.env.PORT || 3000),
     hmr: hmrConfig,
     fs: {
-      // See https://vitejs.dev/config/server-options.html#server-fs-allow for more information
       allow: ["app", "node_modules"],
     },
   },
   plugins: [
     remix({
-      ignoredRouteFiles: ["**/.*"],
+      ignoredRouteFiles: ["**/.*", "**/*.test.{js,jsx,ts,tsx}"],
       presets: [vercelPreset()],
+      // Resolver o problema dos chunks vazios
+      routes: (defineRoutes) => {
+        return defineRoutes((route) => {
+          // Rotas existentes
+
+          // Ignorar explicitamente as rotas problemáticas
+          route.ignore("webhooks/app/scopes_update");
+          route.ignore("webhooks/app/uninstalled");
+          route.ignore("auth/*");
+        });
+      },
       future: {
         v3_fetcherPersist: true,
         v3_relativeSplatPath: true,
@@ -68,6 +76,21 @@ export default defineConfig({
   ],
   build: {
     assetsInlineLimit: 0,
+    // Resolver o problema de chunks vazios
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Evitar gerar chunks para módulos específicos
+          if (
+            id.includes("webhooks.app.scopes_update") ||
+            id.includes("webhooks.app.uninstalled") ||
+            id.includes("auth.$")
+          ) {
+            return "ignored";
+          }
+        },
+      },
+    },
   },
   optimizeDeps: {
     include: ["@shopify/app-bridge-react", "@shopify/polaris"],

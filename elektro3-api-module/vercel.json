@@ -1,17 +1,6 @@
 {
   "framework": "remix",
-  "routes": [
-    {
-      "src": "/build/(.*)",
-      "dest": "/build/$1"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "/favicon.ico"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/build/server/nodejs-eyJydW50aW1lIjoibm9kZWpzIn0/index.js"
-    }
-  ]
+  "buildCommand": "remix build",
+  "devCommand": "remix dev",
+  "installCommand": "npm install"
 }

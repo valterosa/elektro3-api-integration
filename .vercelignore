@@ -1,0 +1,4 @@
+elektro3-api-module/app/routes/webhooks.app.scopes_update.jsx
+elektro3-api-module/app/routes/webhooks.app.uninstalled.jsx
+elektro3-api-module/app/routes/auth.$.jsx
+# Outros arquivos a ignorar, se necessário
