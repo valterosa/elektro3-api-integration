@@ -1,4 +1,0 @@
-{
-  "framework": "remix",
-  "buildCommand": "cd elektro3-api-module && npm install --production=false && npm run build"
-}
