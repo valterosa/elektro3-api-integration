@@ -15,7 +15,7 @@ import {
   Box,
   InlineStack,
 } from "@shopify/polaris";
-import { CircleAlertMajor, WarningMajor } from "@shopify/polaris-icons";
+import { CircleAlertMajor } from "@shopify/polaris-icons";
 import { json } from "@remix-run/node";
 import {
   useLoaderData,
@@ -209,11 +209,7 @@ export default function ConnectionTest() {
     if (loaderData.isElektro3Configured) return null;
 
     return (
-      <Banner
-        title="Configuração incompleta da API Elektro3"
-        status="warning"
-        icon={WarningMajor}
-      >
+      <Banner title="Configuração incompleta da API Elektro3" status="warning">
         <p>
           Uma ou mais variáveis de ambiente necessárias para a conexão com a API
           Elektro3 não estão configuradas.
