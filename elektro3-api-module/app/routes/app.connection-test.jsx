@@ -15,7 +15,7 @@ import {
   Box,
   InlineStack,
 } from "@shopify/polaris";
-import { CircleAlertMajor } from "@shopify/polaris-icons";
+import { AlertMinor } from "@shopify/polaris-icons";
 import { json } from "@remix-run/node";
 import {
   useLoaderData,
@@ -245,7 +245,7 @@ export default function ConnectionTest() {
             {result.details.includes("Not Found") && (
               <Box paddingBlockStart="4">
                 <Text variant="bodySm" as="p" color="subdued">
-                  <Icon source={CircleAlertMajor} color="warning" />
+                  <Icon source={AlertMinor} color="warning" />
                   <span style={{ marginLeft: "8px" }}>
                     O erro "Not Found" geralmente indica que a URL da API está
                     incorreta ou o endpoint de autenticação não é o esperado.
