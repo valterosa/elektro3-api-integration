@@ -52,17 +52,7 @@ export default defineConfig({
     remix({
       ignoredRouteFiles: ["**/.*", "**/*.test.{js,jsx,ts,tsx}"],
       presets: [vercelPreset()],
-      // Resolver o problema dos chunks vazios
-      routes: (defineRoutes) => {
-        return defineRoutes((route) => {
-          // Rotas existentes
-
-          // Ignorar explicitamente as rotas problemáticas
-          route.ignore("webhooks/app/scopes_update");
-          route.ignore("webhooks/app/uninstalled");
-          route.ignore("auth/*");
-        });
-      },
+      // Removendo a configuração de rotas que estava causando conflito
       future: {
         v3_fetcherPersist: true,
         v3_relativeSplatPath: true,
