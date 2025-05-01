@@ -1,4 +1,7 @@
 {
   "runtime": "nodejs18.x",
+  "env": {
+    "NODE_ENV": "production"
+  },
   "rewrites": [{ "source": "/(.*)", "destination": "/[...remix].js" }]
 }

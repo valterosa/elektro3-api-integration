@@ -1,5 +1,6 @@
 {
   "buildCommand": "cd elektro3-api-module && npm install && npm run build",
   "outputDirectory": "elektro3-api-module/build",
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/$1" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/$1" }],
+  "includeFiles": ["elektro3-api-module/build/**"]
 }

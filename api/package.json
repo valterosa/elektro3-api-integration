@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "main": "[...remix].js",
   "dependencies": {
+    "@remix-run/dev": "^2.16.1",
+    "@remix-run/node": "^2.16.1",
     "@vercel/remix": "2.15.3"
   }
 }

@@ -1,6 +1,8 @@
 // api/index.js
 const { createRequestHandler } = require("@vercel/remix/server");
-const build = require("../elektro3-api-module/build/server/index.js");
+
+// Importar build diretamente do pacote @remix-run/dev
+const build = require("@remix-run/dev/server-build");
 
 const handler = createRequestHandler({
   build,
