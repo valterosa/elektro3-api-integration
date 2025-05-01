@@ -1,11 +1,5 @@
 {
-  "framework": "remix",
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "functions": {
-    "server.js": {
-      "includeFiles": "build/**"
-    }
-  }
+  "installCommand": "npm install"
 }
