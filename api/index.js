@@ -1,7 +1,7 @@
 // api/index.js
 const { createRequestHandler } = require("@vercel/remix/server");
 
-// Importar build diretamente do pacote @remix-run/dev
+// Usamos o server-build que é gerado durante o processo de build
 const build = require("@remix-run/dev/server-build");
 
 const handler = createRequestHandler({
