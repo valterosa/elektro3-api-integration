@@ -1,9 +1,4 @@
 {
   "runtime": "nodejs18.x",
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/[...remix].js"
-    }
-  ]
+  "rewrites": [{ "source": "/(.*)", "destination": "/[...remix].js" }]
 }
