@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js",
-    "vercel-build": "echo 'Build step completed'"
+    "vercel-build": "cd elektro3-api-module && npm install && npm run build"
   },
   "dependencies": {
     "@remix-run/express": "2.16.5",
@@ -20,5 +20,6 @@
   },
   "engines": {
     "node": ">=16.x"
-  }
+  },
+  "type": "module"
 }

@@ -1,27 +1,9 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/index.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "elektro3-api-module/package.json",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/build/(.*)",
-      "dest": "/elektro3-api-module/build/client/$1"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "/elektro3-api-module/public/favicon.ico"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/api/index.js"
-    }
+  "buildCommand": "cd elektro3-api-module && npm install --include=dev && npm run build",
+  "outputDirectory": "elektro3-api-module/build",
+  "framework": "remix",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/elektro3-api-module/server.js" }
   ]
 }
