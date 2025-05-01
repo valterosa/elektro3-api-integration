@@ -10,3 +10,8 @@ export default createRequestHandler({
     };
   },
 });
+
+// Export a default handler for Vercel
+export const config = {
+  runtime: "nodejs",
+};

@@ -7,7 +7,7 @@ const build = require("./build/server/index.js");
 // Certifique-se de definir o ambiente correto
 const mode = process.env.NODE_ENV || "production";
 
-module.exports = createRequestHandler({
+const handler = createRequestHandler({
   build,
   mode,
   getLoadContext(req, res) {
@@ -16,3 +16,6 @@ module.exports = createRequestHandler({
     };
   },
 });
+
+module.exports = handler;
+module.exports.default = handler;

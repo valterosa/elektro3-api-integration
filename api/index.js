@@ -1,8 +1,8 @@
-// api/[...remix].js
+// api/index.js
 const { createRequestHandler } = require("@vercel/remix/server");
 const build = require("../elektro3-api-module/build/server/index.js");
 
-module.exports = createRequestHandler({
+const handler = createRequestHandler({
   build,
   mode: process.env.NODE_ENV,
   getLoadContext(req, res) {
@@ -12,5 +12,5 @@ module.exports = createRequestHandler({
   },
 });
 
-// Export a default handler for Vercel
-module.exports.default = module.exports;
+module.exports = handler;
+module.exports.default = handler;

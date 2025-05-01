@@ -52,7 +52,6 @@ export default defineConfig({
     remix({
       ignoredRouteFiles: ["**/.*", "**/*.test.{js,jsx,ts,tsx}"],
       presets: [vercelPreset()],
-      // Removendo a configuração de rotas que estava causando conflito
       future: {
         v3_fetcherPersist: true,
         v3_relativeSplatPath: true,
@@ -66,19 +65,10 @@ export default defineConfig({
   ],
   build: {
     assetsInlineLimit: 0,
-    // Resolver o problema de chunks vazios
+    // Remove the manual chunks configuration that was causing issues
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          // Evitar gerar chunks para módulos específicos
-          if (
-            id.includes("webhooks.app.scopes_update") ||
-            id.includes("webhooks.app.uninstalled") ||
-            id.includes("auth.$")
-          ) {
-            return "ignored";
-          }
-        },
+        // Don't exclude any chunks to ensure all routes are included
       },
     },
   },
