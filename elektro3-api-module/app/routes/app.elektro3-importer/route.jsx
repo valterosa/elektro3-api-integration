@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Page,
   Layout,
@@ -14,11 +14,23 @@ import {
   Loading,
   Frame,
   EmptyState,
+  ProgressBar,
+  InlineStack,
 } from "@shopify/polaris";
-import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
+import {
+  useLoaderData,
+  useSubmit,
+  useNavigation,
+  useActionData,
+} from "@remix-run/react";
 import { json } from "@remix-run/node";
 import { authenticate } from "../../shopify.server";
-import { fetchProductsFromElektro3API } from "../../lib/elektro3-api.server";
+import {
+  fetchProductsFromElektro3API,
+  importProductsToShopify,
+  fetchCategories,
+  testConnections,
+} from "../../lib/elektro3-api.server";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
@@ -28,14 +40,52 @@ export const loader = async ({ request }) => {
   const query = url.searchParams.get("query") || "";
   const inStock = url.searchParams.get("inStock") === "true";
   const page = parseInt(url.searchParams.get("page") || "1", 10);
+  const testConnection = url.searchParams.get("testConnection") === "true";
 
-  // Fetch products from Elektro3 API with filters
+  // Testar conexões se solicitado
+  if (testConnection) {
+    try {
+      const connectionStatus = await testConnections();
+      return json({
+        connectionStatus,
+        products: [],
+        categories: [],
+        totalProducts: 0,
+        filters: { category, query, inStock, page },
+      });
+    } catch (error) {
+      console.error("Erro ao testar conexões:", error);
+      return json({
+        connectionStatus: {
+          elektro3: { success: false, message: error.message },
+          shopify: { success: false, message: "Não testado" },
+        },
+        products: [],
+        categories: [],
+        totalProducts: 0,
+        filters: { category, query, inStock, page },
+        error: "Falha ao testar conexões",
+      });
+    }
+  }
+
+  // Buscar categorias e produtos da API Elektro3
   try {
-    const { products, categories, totalProducts } =
+    // Obter categorias
+    const categories = await fetchCategories();
+
+    // Preparar filtros para a busca de produtos
+    const productFilters = {};
+
+    if (category) productFilters.codigo_categoria = category;
+    if (query) productFilters.search = query;
+    if (inStock) productFilters.stock_gt = 0;
+
+    // Buscar produtos com os filtros
+    const { products, totalProducts, totalPages, currentPage } =
       await fetchProductsFromElektro3API({
-        category,
-        query,
-        inStock,
+        filter:
+          Object.keys(productFilters).length > 0 ? productFilters : undefined,
         page,
         limit: 20,
       });
@@ -44,16 +94,18 @@ export const loader = async ({ request }) => {
       products,
       categories,
       totalProducts,
+      totalPages,
+      currentPage,
       filters: { category, query, inStock, page },
     });
   } catch (error) {
-    console.error("Error fetching products:", error);
+    console.error("Erro ao buscar produtos:", error);
     return json({
       products: [],
       categories: [],
       totalProducts: 0,
       filters: { category, query, inStock, page },
-      error: "Failed to fetch products from Elektro3 API",
+      error: `Falha ao buscar produtos da API Elektro3: ${error.message}`,
     });
   }
 };
@@ -64,131 +116,60 @@ export const action = async ({ request }) => {
   const productsToImport = JSON.parse(formData.get("products"));
 
   try {
-    const results = [];
-
-    // Import products to Shopify
-    for (const product of productsToImport) {
-      try {
-        // Transform Elektro3 product to Shopify product format
-        const shopifyProduct = {
-          title: product.nombre || "Produto sem nome",
-          body_html: product.descripcion || "",
-          vendor: product.marca || "Elektro3",
-          product_type: product.subfamilia || product.categoria || "",
-          tags: `${product.codigo_familia || ""}, ${product.subfamilia || ""}`.trim(),
-          status: "active",
-          variants: [
-            {
-              price: product.precio?.toString() || "0.00",
-              inventory_quantity: product.stock || 0,
-              requires_shipping: true,
-              sku: product.codigo || "",
-              barcode: product.ean13 || "",
-              weight: product.peso || 0,
-              weight_unit: "kg",
-            },
-          ],
-          images: [],
-        };
-
-        // Add main image if it exists
-        if (product.imagen) {
-          shopifyProduct.images.push({
-            src: product.imagen,
-          });
-        }
-
-        // Add additional images if they exist
-        if (
-          product.imagenes_adicionales &&
-          Array.isArray(product.imagenes_adicionales)
-        ) {
-          product.imagenes_adicionales.forEach((img) => {
-            if (img.imagen) {
-              shopifyProduct.images.push({
-                src: img.imagen,
-              });
-            }
-          });
-        }
-
-        // Create product in Shopify
-        const response = await admin.graphql(
-          `
-          mutation productCreate($input: ProductInput!) {
-            productCreate(input: $input) {
-              product {
-                id
-                title
-              }
-              userErrors {
-                field
-                message
-              }
-            }
-          }`,
-          {
-            variables: {
-              input: shopifyProduct,
-            },
-          },
-        );
-
-        const responseJson = await response.json();
-        const { productCreate } = responseJson.data;
-
-        if (productCreate.userErrors.length > 0) {
-          throw new Error(productCreate.userErrors[0].message);
-        }
-
-        results.push({
-          elektro3Id: product.codigo,
-          shopifyId: productCreate.product.id,
-          title: shopifyProduct.title,
-          status: "success",
-        });
-      } catch (productError) {
-        console.error(
-          `Error importing product ${product.codigo || "unknown"}:`,
-          productError,
-        );
-        results.push({
-          elektro3Id: product.codigo,
-          error: productError.message,
-          status: "error",
-        });
-      }
-    }
+    // Importar produtos para o Shopify usando nossa função especializada
+    const results = await importProductsToShopify(productsToImport);
 
     return json({
       status: "success",
-      message: `Import completed. ${results.filter((r) => r.status === "success").length} products successfully imported.`,
+      message: `Importação concluída. ${results.filter((r) => r.status === "success").length} produtos importados com sucesso.`,
       total: productsToImport.length,
       successCount: results.filter((r) => r.status === "success").length,
-      errors: results.filter((r) => r.status === "error").length,
+      errorCount: results.filter((r) => r.status === "error").length,
       results: results,
     });
   } catch (error) {
-    console.error("Error importing products:", error);
+    console.error("Erro ao importar produtos:", error);
     return json({
-      success: false,
-      error: "Failed to import products to Shopify",
-      details: error.message,
+      status: "error",
+      message: "Falha ao importar produtos para o Shopify",
+      errorDetails: error.message,
     });
   }
 };
 
 export default function Elektro3Importer() {
-  const { products, categories, totalProducts, filters, error } =
-    useLoaderData();
+  const loaderData = useLoaderData();
+  const {
+    products = [],
+    categories = [],
+    totalProducts = 0,
+    totalPages = 1,
+    currentPage = 1,
+    filters = { category: "", query: "", inStock: false, page: 1 },
+    error,
+    connectionStatus,
+  } = loaderData;
+
+  const actionData = useActionData();
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [isImportingProducts, setIsImportingProducts] = useState(false);
+  const [importResults, setImportResults] = useState(null);
   const submit = useSubmit();
   const navigation = useNavigation();
   const isLoading =
     navigation.state === "loading" || navigation.state === "submitting";
 
+  // Atualizar resultados de importação quando os dados da ação forem recebidos
+  useEffect(() => {
+    if (actionData && actionData.status) {
+      setImportResults(actionData);
+      setSelectedProducts([]);
+    }
+  }, [actionData]);
+
+  // Tratar mudanças de seleção
   const handleSelectionChange = useCallback(
     (selectedIds) => {
       const selected = products.filter((product) =>
@@ -199,6 +180,7 @@ export default function Elektro3Importer() {
     [products],
   );
 
+  // Tratar mudanças de filtro
   const handleFilterChange = useCallback(
     (newFilters) => {
       const searchParams = new URLSearchParams();
@@ -214,6 +196,15 @@ export default function Elektro3Importer() {
     [submit],
   );
 
+  // Testar conexões
+  const handleTestConnections = useCallback(() => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("testConnection", "true");
+    submit(searchParams, { replace: true, method: "get" });
+    setIsConnectModalOpen(true);
+  }, [submit]);
+
+  // Importar produtos
   const handleImportProducts = useCallback(() => {
     setIsImportingProducts(true);
 
@@ -225,18 +216,27 @@ export default function Elektro3Importer() {
       replace: true,
     });
 
-    // Close modal after submission
+    // Fechar modal após envio
     setIsImportModalOpen(false);
-    setIsImportingProducts(false);
   }, [selectedProducts, submit]);
 
+  // Renderizar item de produto na lista
   const renderItem = (item) => {
-    const { codigo, nombre, imagen, precio, stock, marca, categoria } = item;
+    const {
+      codigo,
+      nombre,
+      imagen,
+      precio,
+      stock,
+      marca,
+      categoria,
+      subfamilia,
+    } = item;
 
     return (
       <ResourceList.Item
         id={codigo}
-        accessibilityLabel={`View details for ${nombre}`}
+        accessibilityLabel={`Ver detalhes de ${nombre}`}
       >
         <div style={{ display: "flex", alignItems: "center" }}>
           <div style={{ marginRight: "20px" }}>
@@ -255,12 +255,15 @@ export default function Elektro3Importer() {
               <Text variant="bodyMd">SKU: {codigo}</Text>
               <Text variant="bodyMd">€{Number(precio).toFixed(2)}</Text>
               <Badge status={stock > 0 ? "success" : "critical"}>
-                {stock > 0 ? `${stock} in stock` : "Out of stock"}
+                {stock > 0 ? `${stock} em estoque` : "Sem estoque"}
               </Badge>
             </div>
             <div style={{ marginTop: "4px" }}>
               <Text variant="bodyMd">Marca: {marca}</Text>
               <Text variant="bodyMd">Categoria: {categoria}</Text>
+              {subfamilia && (
+                <Text variant="bodyMd">Subcategoria: {subfamilia}</Text>
+              )}
             </div>
           </div>
         </div>
@@ -268,30 +271,35 @@ export default function Elektro3Importer() {
     );
   };
 
+  // Controle de filtros
   const filterControl = (
     <Filters
       queryValue={filters.query}
-      queryPlaceholder="Search products..."
+      queryPlaceholder="Buscar produtos..."
       filters={[
         {
           key: "category",
-          label: "Category",
+          label: "Categoria",
           filter: (
             <div style={{ padding: "8px" }}>
               <select
                 value={filters.category}
                 onChange={(e) =>
-                  handleFilterChange({ ...filters, category: e.target.value })
+                  handleFilterChange({
+                    ...filters,
+                    category: e.target.value,
+                    page: 1,
+                  })
                 }
                 style={{ width: "100%", padding: "8px" }}
               >
-                <option value="">All Categories</option>
+                <option value="">Todas as Categorias</option>
                 {categories.map((category) => (
                   <option
-                    key={category.codigo_categoria}
-                    value={category.codigo_categoria}
+                    key={category.codigo_categoria || category.id}
+                    value={category.codigo_categoria || category.id}
                   >
-                    {category.categoria}
+                    {category.categoria || category.name}
                   </option>
                 ))}
               </select>
@@ -301,16 +309,20 @@ export default function Elektro3Importer() {
         },
         {
           key: "inStock",
-          label: "Available in stock",
+          label: "Disponível em estoque",
           filter: (
             <div style={{ padding: "8px" }}>
               <Button
                 pressed={filters.inStock}
                 onClick={() =>
-                  handleFilterChange({ ...filters, inStock: !filters.inStock })
+                  handleFilterChange({
+                    ...filters,
+                    inStock: !filters.inStock,
+                    page: 1,
+                  })
                 }
               >
-                {filters.inStock ? "Yes" : "No"}
+                {filters.inStock ? "Sim" : "Não"}
               </Button>
             </div>
           ),
@@ -328,55 +340,94 @@ export default function Elektro3Importer() {
     />
   );
 
+  // Controle de paginação
   const paginationMarkup = (
     <div
       style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}
     >
       <Button
-        disabled={filters.page <= 1}
+        disabled={currentPage <= 1}
         onClick={() =>
-          handleFilterChange({ ...filters, page: filters.page - 1 })
+          handleFilterChange({ ...filters, page: currentPage - 1 })
         }
       >
-        Previous
+        Anterior
       </Button>
       <div style={{ margin: "0 10px", lineHeight: "36px" }}>
-        Page {filters.page}
+        Página {currentPage} de {totalPages || 1}
       </div>
       <Button
-        disabled={products.length < 20}
+        disabled={currentPage >= totalPages || products.length < 20}
         onClick={() =>
-          handleFilterChange({ ...filters, page: filters.page + 1 })
+          handleFilterChange({ ...filters, page: currentPage + 1 })
         }
       >
-        Next
+        Próxima
       </Button>
     </div>
   );
 
+  // Banner de resultados de importação
+  const importResultsBanner = importResults && (
+    <Banner
+      status={importResults.status === "success" ? "success" : "critical"}
+      title={importResults.message}
+      onDismiss={() => setImportResults(null)}
+    >
+      <p>
+        Total: {importResults.total} | Sucesso: {importResults.successCount} |
+        Erros: {importResults.errorCount}
+      </p>
+
+      {importResults.results &&
+        importResults.results.some((r) => r.status === "error") && (
+          <div style={{ marginTop: "10px" }}>
+            <Text variant="headingSm">Detalhes dos erros:</Text>
+            <ul>
+              {importResults.results
+                .filter((r) => r.status === "error")
+                .map((result) => (
+                  <li key={result.elektro3Id}>
+                    {result.elektro3Id}: {result.error}
+                  </li>
+                ))}
+            </ul>
+          </div>
+        )}
+    </Banner>
+  );
+
   return (
     <Page
-      title="Elektro3 Product Importer"
+      title="Importador de Produtos Elektro3"
       primaryAction={{
-        content: "Import Selected Products",
+        content: "Importar Produtos Selecionados",
         disabled: selectedProducts.length === 0,
         onAction: () => setIsImportModalOpen(true),
       }}
+      secondaryActions={[
+        {
+          content: "Testar Conexões",
+          onAction: handleTestConnections,
+        },
+      ]}
     >
       <Frame>
         {isLoading && <Loading />}
 
         {error && (
-          <Banner status="critical" title="There was an error">
+          <Banner status="critical" title="Ocorreu um erro">
             <p>{error}</p>
           </Banner>
         )}
+
+        {importResultsBanner}
 
         <Layout>
           <Layout.Section>
             <LegacyCard>
               <ResourceList
-                resourceName={{ singular: "product", plural: "products" }}
+                resourceName={{ singular: "produto", plural: "produtos" }}
                 items={products}
                 renderItem={renderItem}
                 selectedItems={selectedProducts.map((p) => p.codigo)}
@@ -385,10 +436,10 @@ export default function Elektro3Importer() {
                 filterControl={filterControl}
                 emptyState={
                   <EmptyState
-                    heading="No products found"
+                    heading="Nenhum produto encontrado"
                     image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
                   >
-                    <p>Try changing your search or filter criteria.</p>
+                    <p>Tente alterar seus critérios de busca ou filtros.</p>
                   </EmptyState>
                 }
               />
@@ -397,31 +448,32 @@ export default function Elektro3Importer() {
           </Layout.Section>
         </Layout>
 
+        {/* Modal de importação */}
         <Modal
           open={isImportModalOpen}
           onClose={() => setIsImportModalOpen(false)}
-          title="Import Products"
+          title="Importar Produtos"
           primaryAction={{
-            content: "Import Products",
+            content: "Importar Produtos",
             onAction: handleImportProducts,
             loading: isImportingProducts,
           }}
           secondaryActions={[
             {
-              content: "Cancel",
+              content: "Cancelar",
               onAction: () => setIsImportModalOpen(false),
             },
           ]}
         >
           <Modal.Section>
             <Text>
-              You are about to import {selectedProducts.length} products to your
-              Shopify store. This action cannot be undone. Do you want to
-              continue?
+              Você está prestes a importar {selectedProducts.length} produtos
+              para sua loja Shopify. Esta ação não pode ser desfeita. Deseja
+              continuar?
             </Text>
 
             <div style={{ marginTop: "20px" }}>
-              <Text variant="headingMd">Selected Products:</Text>
+              <Text variant="headingMd">Produtos Selecionados:</Text>
               <ul style={{ marginTop: "10px" }}>
                 {selectedProducts.map((product) => (
                   <li key={product.codigo}>
@@ -430,6 +482,63 @@ export default function Elektro3Importer() {
                 ))}
               </ul>
             </div>
+          </Modal.Section>
+        </Modal>
+
+        {/* Modal de teste de conexão */}
+        <Modal
+          open={isConnectModalOpen && !!connectionStatus}
+          onClose={() => setIsConnectModalOpen(false)}
+          title="Status das Conexões"
+        >
+          <Modal.Section>
+            {connectionStatus && (
+              <InlineStack spacing="loose">
+                <InlineStack.Item>
+                  <Text variant="headingMd">Elektro3 API</Text>
+                  <Banner
+                    status={
+                      connectionStatus.elektro3.success ? "success" : "critical"
+                    }
+                    title={
+                      connectionStatus.elektro3.success
+                        ? "Conectado"
+                        : "Falha na conexão"
+                    }
+                  >
+                    <p>{connectionStatus.elektro3.message}</p>
+                    {connectionStatus.elektro3.token && (
+                      <p>Token: {connectionStatus.elektro3.token}</p>
+                    )}
+                  </Banner>
+                </InlineStack.Item>
+
+                <InlineStack.Item>
+                  <Text variant="headingMd">Shopify API</Text>
+                  <Banner
+                    status={
+                      connectionStatus.shopify.success ? "success" : "critical"
+                    }
+                    title={
+                      connectionStatus.shopify.success
+                        ? "Conectado"
+                        : "Falha na conexão"
+                    }
+                  >
+                    <p>{connectionStatus.shopify.message}</p>
+                    {connectionStatus.shopify.shopName && (
+                      <p>Loja: {connectionStatus.shopify.shopName}</p>
+                    )}
+                  </Banner>
+                </InlineStack.Item>
+
+                <InlineStack.Item>
+                  <Button onClick={() => setIsConnectModalOpen(false)}>
+                    Fechar
+                  </Button>
+                </InlineStack.Item>
+              </InlineStack>
+            )}
           </Modal.Section>
         </Modal>
       </Frame>

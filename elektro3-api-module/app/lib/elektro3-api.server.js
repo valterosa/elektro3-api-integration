@@ -1,6 +1,7 @@
 /**
  * Serviço para comunicação com a API da Elektro3
  * Este arquivo contém funções para buscar produtos e categorias da API da Elektro3
+ * e importá-los para o Shopify
  */
 
 // Configurações da API Elektro3
@@ -10,6 +11,11 @@ const ELEKTRO3_CLIENT_ID = process.env.ELEKTRO3_CLIENT_ID;
 const ELEKTRO3_SECRET_KEY = process.env.ELEKTRO3_SECRET_KEY;
 const ELEKTRO3_USERNAME = process.env.ELEKTRO3_USERNAME;
 const ELEKTRO3_PASSWORD = process.env.ELEKTRO3_PASSWORD;
+
+// Configurações do Shopify
+const SHOPIFY_SHOP = process.env.SHOPIFY_SHOP;
+const SHOPIFY_ADMIN_API_ACCESS_TOKEN =
+  process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN;
 
 // Logs para depuração
 console.log("Elektro3 API URL:", ELEKTRO3_API_URL);
@@ -21,7 +27,7 @@ console.log("Elektro3 credentials configured:", {
 });
 
 /**
- * Autenticar na API da Elektro3
+ * Autenticar na API da Elektro3 (formato atualizado)
  * @returns {Promise<string>} Token de acesso
  */
 export async function authenticate() {
@@ -38,179 +44,160 @@ export async function authenticate() {
       );
     }
 
-    console.log(
-      "Attempting to authenticate with Elektro3 API at:",
-      `${ELEKTRO3_API_URL}/auth`,
-    );
+    console.log("Autenticando na API Elektro3 usando endpoint /oauth/token...");
 
-    // Tentativa principal com endpoint /auth
-    try {
-      const response = await fetch(`${ELEKTRO3_API_URL}/auth`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          clientId: ELEKTRO3_CLIENT_ID,
-          secretKey: ELEKTRO3_SECRET_KEY,
-          username: ELEKTRO3_USERNAME,
-          password: ELEKTRO3_PASSWORD,
-        }),
-      });
+    // Formato correto conforme documentação (usando grant_type)
+    const authPayload = {
+      grant_type: "password",
+      client_id: ELEKTRO3_CLIENT_ID,
+      client_secret: ELEKTRO3_SECRET_KEY,
+      username: ELEKTRO3_USERNAME,
+      password: ELEKTRO3_PASSWORD,
+    };
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Authentication successful with /auth endpoint");
-        return data.accessToken;
-      }
+    // Fazer a solicitação de autenticação para o endpoint correto
+    const response = await fetch(`${ELEKTRO3_API_URL}/oauth/token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(authPayload),
+    });
 
-      console.log(
-        "First authentication attempt failed, status:",
-        response.status,
-        response.statusText,
+    const status = response.status;
+    console.log("Status da resposta de autenticação:", status);
+
+    if (!response.ok) {
+      const responseBody = await response.text();
+      throw new Error(
+        `Erro na autenticação: ${status} ${response.statusText} - ${responseBody}`,
       );
-      // Se a primeira tentativa falhar, não lance erro ainda, tente o formato alternativo
-    } catch (err) {
-      console.log("Error with first authentication attempt:", err.message);
-      // Continue para a próxima tentativa
     }
 
-    // Segunda tentativa com endpoint /api/auth (formato comum em APIs)
-    try {
-      console.log("Attempting alternative endpoint: /api/auth");
-      const response = await fetch(`${ELEKTRO3_API_URL}/api/auth`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          clientId: ELEKTRO3_CLIENT_ID,
-          secretKey: ELEKTRO3_SECRET_KEY,
-          username: ELEKTRO3_USERNAME,
-          password: ELEKTRO3_PASSWORD,
-        }),
-      });
+    const data = await response.json();
+    console.log("Autenticação bem-sucedida!");
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Authentication successful with /api/auth endpoint");
-        return data.accessToken;
-      }
+    // Extrair o token de acesso do formato correto (pode ser .access_token ou .token)
+    const accessToken = data.access_token || data.token;
 
-      console.log(
-        "Second authentication attempt failed, status:",
-        response.status,
-        response.statusText,
-      );
-    } catch (err) {
-      console.log("Error with second authentication attempt:", err.message);
+    if (!accessToken) {
+      throw new Error("Token de acesso não encontrado na resposta");
     }
 
-    // Terceira tentativa com formato de corpo alternativo (alguns sistemas usam nomes de campos diferentes)
-    try {
-      console.log("Attempting with alternative request body format");
-      const response = await fetch(`${ELEKTRO3_API_URL}/auth`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          client_id: ELEKTRO3_CLIENT_ID,
-          secret_key: ELEKTRO3_SECRET_KEY,
-          user: ELEKTRO3_USERNAME,
-          password: ELEKTRO3_PASSWORD,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Authentication successful with alternative body format");
-        return data.accessToken;
-      }
-
-      console.log(
-        "Third authentication attempt failed, status:",
-        response.status,
-        response.statusText,
-      );
-    } catch (err) {
-      console.log("Error with third authentication attempt:", err.message);
-    }
-
-    // Se todas as tentativas falharem, lance um erro detalhado
-    throw new Error(
-      "Failed to authenticate with Elektro3 API after multiple attempts. Please check API URL and credentials.",
-    );
+    return accessToken;
   } catch (error) {
-    console.error("Error authenticating with Elektro3 API:", error);
+    console.error("Erro ao autenticar na API Elektro3:", error);
     throw error;
   }
 }
 
 /**
- * Buscar produtos da API da Elektro3 com filtros
+ * Buscar produtos da API da Elektro3 usando o endpoint correto (/api/get-productos)
  * @param {Object} options Opções de filtro
- * @param {string} options.category Categoria dos produtos
- * @param {string} options.query Termo de busca
- * @param {boolean} options.inStock Filtrar por produtos em estoque
  * @param {number} options.page Página atual
  * @param {number} options.limit Limite de produtos por página
- * @returns {Promise<Object>} Produtos, categorias e total de produtos
+ * @param {Object} options.filter Filtros adicionais
+ * @returns {Promise<Object>} Produtos encontrados
  */
 export async function fetchProductsFromElektro3API(options = {}) {
   try {
     const token = await authenticate();
-
-    // Construir a URL com os parâmetros de consulta
-    const params = new URLSearchParams();
-
-    if (options.category) params.append("codigo_categoria", options.category);
-    if (options.query) params.append("search", options.query);
-    if (options.inStock) params.append("stock_gt", "0");
-
-    params.append("page", options.page || 1);
-    params.append("limit", options.limit || 20);
-
-    // Buscar produtos
-    const productsResponse = await fetch(
-      `${ELEKTRO3_API_URL}/products?${params.toString()}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
+    console.log(
+      "Buscando produtos da API Elektro3 usando endpoint /api/get-productos...",
     );
 
-    if (!productsResponse.ok) {
-      throw new Error(
-        `Failed to fetch products: ${productsResponse.statusText}`,
-      );
+    // Construir o objeto de payload sem incluir o campo filter se estiver vazio
+    const payload = {
+      limit: options.limit || 20,
+      page: options.page || 1,
+    };
+
+    // Adicionar o filtro apenas se existir e não for vazio
+    if (options.filter && Object.keys(options.filter).length > 0) {
+      // Tentar converter para string JSON se for um objeto
+      if (typeof options.filter === "object") {
+        payload.filter = JSON.stringify(options.filter);
+      } else {
+        payload.filter = options.filter;
+      }
     }
 
-    const productsData = await productsResponse.json();
-
-    // Buscar categorias simultaneamente
-    const categoriesResponse = await fetch(`${ELEKTRO3_API_URL}/categories`, {
+    const response = await fetch(`${ELEKTRO3_API_URL}/api/get-productos`, {
+      method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
       },
+      body: JSON.stringify(payload),
     });
 
-    if (!categoriesResponse.ok) {
+    const status = response.status;
+    console.log("Status da resposta de busca de produtos:", status);
+
+    if (!response.ok) {
+      const responseBody = await response.text();
       throw new Error(
-        `Failed to fetch categories: ${categoriesResponse.statusText}`,
+        `Erro ao buscar produtos: ${status} ${response.statusText} - ${responseBody}`,
       );
     }
 
-    const categoriesData = await categoriesResponse.json();
+    const data = await response.json();
+
+    // Verificar a estrutura da resposta
+    let products = [];
+
+    if (Array.isArray(data)) {
+      products = data;
+    } else if (data.data && Array.isArray(data.data)) {
+      products = data.data;
+    } else if (data.productos && Array.isArray(data.productos)) {
+      products = data.productos;
+    } else if (data.message === "Sin datos") {
+      console.log('A API retornou "Sin datos" - não há produtos disponíveis');
+      return { products: [], totalProducts: 0 };
+    } else if (data.status && data.status !== 0 && data.errors) {
+      throw new Error(
+        `API retornou status de erro: ${JSON.stringify(data.errors)}`,
+      );
+    } else {
+      // Procurar por qualquer array na resposta que possa conter produtos
+      let found = false;
+      for (const key in data) {
+        if (Array.isArray(data[key]) && data[key].length > 0) {
+          const firstItem = data[key][0];
+          if (
+            firstItem &&
+            (firstItem.codigo || firstItem.nombre || firstItem.precio)
+          ) {
+            products = data[key];
+            found = true;
+            console.log(`Encontrado array de produtos no campo "${key}"`);
+            break;
+          }
+        }
+      }
+
+      if (!found) {
+        console.log("Estrutura da resposta:", JSON.stringify(data, null, 2));
+        throw new Error("Formato de resposta não reconhecido");
+      }
+    }
+
+    console.log(`Encontrados ${products.length} produtos.`);
+
+    const totalProducts = data.total_items || products.length;
+    const totalPages =
+      data.total_pages || Math.ceil(totalProducts / (options.limit || 20));
 
     return {
-      products: productsData.data || [],
-      categories: categoriesData.data || [],
-      totalProducts: productsData.total || 0,
+      products,
+      totalProducts,
+      totalPages,
+      currentPage: options.page || 1,
     };
   } catch (error) {
-    console.error("Error fetching data from Elektro3 API:", error);
+    console.error("Erro ao buscar produtos da API Elektro3:", error);
     throw error;
   }
 }
@@ -224,27 +211,168 @@ export async function fetchProductDetails(productCode) {
   try {
     const token = await authenticate();
 
-    const response = await fetch(
-      `${ELEKTRO3_API_URL}/products/${productCode}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
+    // Tentar usar o endpoint GET específico se disponível
+    try {
+      const response = await fetch(
+        `${ELEKTRO3_API_URL}/api/get-producto/${productCode}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      },
-    );
+      );
 
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch product details: ${response.statusText}`,
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      }
+    } catch (err) {
+      console.log(
+        "Endpoint específico não disponível, tentando método alternativo",
       );
     }
 
-    const data = await response.json();
-    return data;
+    // Se o endpoint específico falhar, buscar todos os produtos e filtrar
+    const allProductsResult = await fetchProductsFromElektro3API({
+      filter: { codigo: productCode },
+      limit: 1,
+    });
+
+    const product = allProductsResult.products.find(
+      (p) => p.codigo === productCode,
+    );
+
+    if (!product) {
+      throw new Error(`Produto com código ${productCode} não encontrado`);
+    }
+
+    return product;
   } catch (error) {
-    console.error(`Error fetching product details for ${productCode}:`, error);
+    console.error(`Erro ao buscar detalhes do produto ${productCode}:`, error);
     throw error;
   }
+}
+
+/**
+ * Importar produtos da Elektro3 para o Shopify
+ * @param {Array} products Lista de produtos para importar
+ * @returns {Promise<Array>} Resultados da importação
+ */
+export async function importProductsToShopify(products) {
+  console.log("Importando produtos para o Shopify...");
+  const results = [];
+
+  for (const product of products) {
+    try {
+      // Identificar campos corretos com base na documentação
+      const codigo = product.codigo || product.sku || product.id;
+      const nombre = product.nombre || product.name || product.title;
+      const precio = product.precio || product.price;
+      const stock = product.stock || product.inventory_quantity || 0;
+      const descripcion = product.descripcion || product.description || "";
+      const marca = product.marca || product.brand || "Elektro3";
+      const categoria = product.categoria || product.category || "";
+      const subfamilia = product.subfamilia || product.subcategory || "";
+      const imagen =
+        product.imagen || product.image || product.images?.[0]?.src;
+
+      console.log(`Importando produto: ${nombre} (${codigo})...`);
+
+      // Transformar produto da Elektro3 para o formato do Shopify
+      const shopifyProduct = {
+        title: nombre || "Produto sem nome",
+        body_html: descripcion || "",
+        vendor: marca || "Elektro3",
+        product_type: subfamilia || categoria || "",
+        tags: `${product.codigo_familia || ""}, ${subfamilia || ""}`.trim(),
+        status: "active",
+        variants: [
+          {
+            price:
+              (typeof precio === "number" ? precio.toString() : precio) ||
+              "0.00",
+            inventory_quantity: stock || 0,
+            requires_shipping: true,
+            sku: codigo || "",
+            barcode: product.ean13 || product.barcode || "",
+            weight: product.peso || product.weight || 0,
+            weight_unit: "kg",
+          },
+        ],
+        images: [],
+      };
+
+      // Adicionar imagem principal se existir
+      if (imagen) {
+        shopifyProduct.images.push({
+          src: imagen,
+        });
+      }
+
+      // Adicionar imagens adicionais se existirem
+      if (
+        product.imagenes_adicionales &&
+        Array.isArray(product.imagenes_adicionales)
+      ) {
+        product.imagenes_adicionales.forEach((img) => {
+          if (img.imagen || img.src) {
+            shopifyProduct.images.push({
+              src: img.imagen || img.src,
+            });
+          }
+        });
+      }
+
+      // Criar produto no Shopify via API REST
+      console.log(`Enviando para Shopify: ${nombre}`);
+
+      if (!SHOPIFY_SHOP || !SHOPIFY_ADMIN_API_ACCESS_TOKEN) {
+        throw new Error("Credenciais do Shopify não configuradas");
+      }
+
+      const shopifyResponse = await fetch(
+        `https://${SHOPIFY_SHOP}/admin/api/2023-04/products.json`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Shopify-Access-Token": SHOPIFY_ADMIN_API_ACCESS_TOKEN,
+          },
+          body: JSON.stringify({ product: shopifyProduct }),
+        },
+      );
+
+      const statusShopify = shopifyResponse.status;
+      console.log("Status da resposta do Shopify:", statusShopify);
+
+      if (!shopifyResponse.ok) {
+        const responseTextShopify = await shopifyResponse.text();
+        throw new Error(
+          `Erro ao criar produto no Shopify: ${statusShopify} ${shopifyResponse.statusText} - ${responseTextShopify}`,
+        );
+      }
+
+      const shopifyData = await shopifyResponse.json();
+
+      results.push({
+        elektro3Id: codigo,
+        shopifyId: shopifyData.product.id,
+        title: shopifyProduct.title,
+        status: "success",
+      });
+
+      console.log(`Produto importado com sucesso: ${nombre}`);
+    } catch (error) {
+      console.error(`Erro ao importar produto:`, error);
+      results.push({
+        elektro3Id: product.codigo || product.sku || "desconhecido",
+        error: error.message,
+        status: "error",
+      });
+    }
+  }
+
+  return results;
 }
 
 /**
@@ -255,6 +383,36 @@ export async function fetchCategories() {
   try {
     const token = await authenticate();
 
+    // Tentar o endpoint específico para categorias
+    try {
+      const response = await fetch(`${ELEKTRO3_API_URL}/api/get-categorias`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Verificar a estrutura da resposta
+        if (Array.isArray(data)) {
+          return data;
+        } else if (data.data && Array.isArray(data.data)) {
+          return data.data;
+        } else if (data.categorias && Array.isArray(data.categorias)) {
+          return data.categorias;
+        }
+      }
+    } catch (err) {
+      console.log(
+        "Erro ao buscar categorias com endpoint principal, tentando alternativo",
+      );
+    }
+
+    // Se o endpoint principal falhar, tentar endpoint alternativo
     const response = await fetch(`${ELEKTRO3_API_URL}/categories`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -262,13 +420,67 @@ export async function fetchCategories() {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch categories: ${response.statusText}`);
+      throw new Error(`Erro ao buscar categorias: ${response.statusText}`);
     }
 
     const data = await response.json();
     return data.data || [];
   } catch (error) {
-    console.error("Error fetching categories:", error);
+    console.error("Erro ao buscar categorias:", error);
     throw error;
   }
+}
+
+/**
+ * Testar a conexão com a API da Elektro3 e Shopify
+ * @returns {Promise<Object>} Status da conexão
+ */
+export async function testConnections() {
+  const result = {
+    elektro3: { success: false, message: "" },
+    shopify: { success: false, message: "" },
+  };
+
+  // Testar conexão com Elektro3
+  try {
+    const token = await authenticate();
+    result.elektro3.success = true;
+    result.elektro3.message =
+      "Conexão com a API Elektro3 estabelecida com sucesso";
+    result.elektro3.token = token.substring(0, 10) + "...";
+  } catch (error) {
+    result.elektro3.success = false;
+    result.elektro3.message = `Erro ao conectar à API Elektro3: ${error.message}`;
+  }
+
+  // Testar conexão com Shopify
+  try {
+    if (!SHOPIFY_SHOP || !SHOPIFY_ADMIN_API_ACCESS_TOKEN) {
+      throw new Error("Credenciais do Shopify não configuradas");
+    }
+
+    const shopResponse = await fetch(
+      `https://${SHOPIFY_SHOP}/admin/api/2023-04/shop.json`,
+      {
+        headers: {
+          "X-Shopify-Access-Token": SHOPIFY_ADMIN_API_ACCESS_TOKEN,
+        },
+      },
+    );
+
+    if (!shopResponse.ok) {
+      const responseText = await shopResponse.text();
+      throw new Error(`Erro: ${shopResponse.status} - ${responseText}`);
+    }
+
+    const shopData = await shopResponse.json();
+    result.shopify.success = true;
+    result.shopify.message = `Conexão com a API Shopify estabelecida com sucesso`;
+    result.shopify.shopName = shopData.shop?.name;
+  } catch (error) {
+    result.shopify.success = false;
+    result.shopify.message = `Erro ao conectar à API Shopify: ${error.message}`;
+  }
+
+  return result;
 }
