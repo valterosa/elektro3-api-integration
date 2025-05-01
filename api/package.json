@@ -1,0 +1,8 @@
+{
+  "name": "elektro3-api-integration-handler",
+  "version": "1.0.0",
+  "main": "[...remix].js",
+  "dependencies": {
+    "@vercel/remix": "2.15.3"
+  }
+}

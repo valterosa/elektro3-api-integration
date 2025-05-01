@@ -1,22 +1,18 @@
-// server.js para Vercel
-import { createRequestHandler } from "@vercel/remix/server";
-import * as build from "./build/server/index.js";
+// server.js para Vercel - usando CommonJS para compatibilidade
+const { createRequestHandler } = require("@vercel/remix/server");
+
+// Importar o build de maneira compatível com ambiente de produção
+const build = require("./build/server/index.js");
 
 // Certifique-se de definir o ambiente correto
 const mode = process.env.NODE_ENV || "production";
 
-export default createRequestHandler({
+module.exports = createRequestHandler({
   build,
   mode,
   getLoadContext(req, res) {
     return {
       env: process.env,
-      waitUntil: (promise) => {
-        // Esta função é necessária para o Vercel Edge Runtime
-        if (req.waitUntil) {
-          req.waitUntil(promise);
-        }
-      },
     };
   },
 });
