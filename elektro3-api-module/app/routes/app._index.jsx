@@ -14,7 +14,7 @@ import {
 } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { json } from "@remix-run/node";
-import { shopifyAdminClient } from "../lib/shopify-admin-client";
+import { shopifyAdminClient } from "~/lib/shopify-admin-client";
 
 export const loader = async ({ request }) => {
   return null;

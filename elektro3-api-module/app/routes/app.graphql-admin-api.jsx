@@ -18,12 +18,12 @@ import {
   Badge,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import { shopifyAdminClient } from "../../lib/shopify-admin-client";
+import { shopifyAdminClient } from "~/lib/shopify-admin-client";
 import {
   createWebhookSubscription,
   listWebhooks,
   deleteWebhookSubscription,
-} from "../../lib/webhook-manager";
+} from "~/lib/webhook-manager";
 
 // Obter webhooks e dados da loja usando GraphQL Admin API
 export async function loader() {
