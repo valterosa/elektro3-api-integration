@@ -1,11 +1,11 @@
 {
   "version": 2,
   "buildCommand": "cd elektro3-api-module && npm install && npm run build",
-  "outputDirectory": "elektro3-api-module/build",
+  "outputDirectory": "build",
   "rewrites": [{ "source": "/(.*)", "destination": "/api/$1" }],
   "functions": {
     "api/**/*": {
-      "includeFiles": "elektro3-api-module/build/**"
+      "includeFiles": "build/**"
     }
   }
 }

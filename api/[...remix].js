@@ -2,10 +2,10 @@
 const path = require("path");
 const { createRequestHandler } = require("@vercel/remix/server");
 
-// O caminho correto para o arquivo de build do servidor
-const BUILD_DIR = path.join(process.cwd(), "elektro3-api-module/build");
+// Ajustando o caminho para ser relativo à raiz do projeto deploy na Vercel
+const BUILD_DIR = path.join(process.cwd(), "build");
 
-// Observe que importamos diretamente do arquivo gerado, não do pacote
+// Importando o build do servidor
 const build = require(path.join(BUILD_DIR, "server/index.js"));
 
 module.exports = createRequestHandler({
