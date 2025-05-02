@@ -1,10 +1,10 @@
 // Este arquivo cria um cliente Shopify que usa diretamente o Admin API Access Token
-// em vez de depender do fluxo OAuth para autenticação
+// para custom apps criadas no Shopify Admin
 
 export function createShopifyAdminClient() {
   const shop = process.env.SHOPIFY_SHOP || "electro-malho.myshopify.com";
   const accessToken = process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN;
-  const apiVersion = "2025-01"; // Use a versão mais recente da API
+  const apiVersion = "2025-04"; // Atualizado para a versão mais recente da API
 
   // Função para fazer requisições GraphQL para a Admin API
   async function graphql(query, variables = {}) {
@@ -22,14 +22,48 @@ export function createShopifyAdminClient() {
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Erro na requisição GraphQL: ${response.status} ${errorText}`,
-      );
+    const jsonResponse = await response.json();
+
+    // Verificar se a resposta contém erros
+    if (jsonResponse.errors) {
+      const errorMessage = jsonResponse.errors.map((e) => e.message).join(", ");
+      throw new Error(`Erro GraphQL: ${errorMessage}`);
     }
 
-    return await response.json();
+    return jsonResponse;
+  }
+
+  // Função para subscrever webhooks usando GraphQL
+  async function subscribeWebhook(topic, callbackUrl) {
+    const mutation = `
+      mutation webhookSubscriptionCreate($topic: WebhookSubscriptionTopic!, $webhookSubscription: WebhookSubscriptionInput!) {
+        webhookSubscriptionCreate(topic: $topic, webhookSubscription: $webhookSubscription) {
+          webhookSubscription {
+            id
+            endpoint {
+              __typename
+              ... on WebhookHttpEndpoint {
+                callbackUrl
+              }
+            }
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      topic,
+      webhookSubscription: {
+        callbackUrl,
+        format: "JSON",
+      },
+    };
+
+    return await graphql(mutation, variables);
   }
 
   // Função para fazer requisições REST para a Admin API
@@ -64,6 +98,7 @@ export function createShopifyAdminClient() {
     graphql,
     rest,
     shop,
+    subscribeWebhook,
   };
 }
 

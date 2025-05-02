@@ -31,6 +31,7 @@ export default function App() {
         </Link>
         <Link to="/app/elektro3-importer">Elektro3 Importer</Link>
         <Link to="/app/connection-test">Connection Test</Link>
+        <Link to="/app/graphql-admin-api">GraphQL Admin API</Link>
         <Link to="/app/additional">Additional page</Link>
       </NavMenu>
       <Outlet />
