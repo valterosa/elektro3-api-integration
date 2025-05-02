@@ -3,6 +3,7 @@ import { installGlobals } from "@remix-run/node";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { vercelPreset } from "@vercel/remix/vite";
+import { resolve } from "path";
 
 installGlobals({ nativeFetch: true });
 
@@ -37,6 +38,11 @@ if (host === "localhost") {
 }
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      "~": resolve(__dirname, "./app"),
+    },
+  },
   server: {
     allowedHosts: [host],
     cors: {
