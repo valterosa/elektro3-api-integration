@@ -1,17 +1,28 @@
 import {
   Link,
   Outlet,
+  useLoaderData,
   useRouteError,
   isRouteErrorResponse,
 } from "@remix-run/react";
 import { json } from "@remix-run/node";
 import { boundary, authenticate } from "@shopify/shopify-app-remix/server";
-import { NavigationMenu } from "@shopify/app-bridge-react";
+import { AppProvider } from "@shopify/shopify-app-remix/react";
+import { NavMenu } from "@shopify/app-bridge-react";
+import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
+
+export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 export async function loader({ request }) {
   try {
-    await authenticate.admin(request);
-    return json({});
+    // Usar o método de autenticação padrão do Shopify
+    const { session } = await authenticate.admin(request);
+    const shop = session.shop;
+
+    return json({
+      apiKey: process.env.SHOPIFY_API_KEY || "",
+      shop,
+    });
   } catch (error) {
     console.error("Erro de autenticação:", error);
     throw error;
@@ -19,34 +30,22 @@ export async function loader({ request }) {
 }
 
 export default function App() {
+  const { apiKey, shop } = useLoaderData();
+  const shopOrigin = `https://${shop}`;
+
   return (
-    <>
-      <NavigationMenu
-        navigationLinks={[
-          {
-            label: "Home",
-            destination: "/app",
-          },
-          {
-            label: "Elektro3 Importer",
-            destination: "/app/elektro3-importer",
-          },
-          {
-            label: "Connection Test",
-            destination: "/app/connection-test",
-          },
-          {
-            label: "GraphQL Admin API",
-            destination: "/app/graphql-admin-api",
-          },
-          {
-            label: "Additional page",
-            destination: "/app/additional",
-          },
-        ]}
-      />
+    <AppProvider isEmbeddedApp apiKey={apiKey} shopOrigin={shopOrigin}>
+      <NavMenu>
+        <Link to="/app" rel="home">
+          Home
+        </Link>
+        <Link to="/app/elektro3-importer">Elektro3 Importer</Link>
+        <Link to="/app/connection-test">Connection Test</Link>
+        <Link to="/app/graphql-admin-api">GraphQL Admin API</Link>
+        <Link to="/app/additional">Additional page</Link>
+      </NavMenu>
       <Outlet />
-    </>
+    </AppProvider>
   );
 }
 

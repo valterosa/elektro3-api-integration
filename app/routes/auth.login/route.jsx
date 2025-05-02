@@ -28,6 +28,11 @@ export const loader = async ({ request }) => {
     // Tenta realizar o login
     const loginResult = await login(request);
 
+    // Se loginResult for uma resposta de redirecionamento, retorne-a diretamente
+    if (loginResult instanceof Response && loginResult.status === 302) {
+      return loginResult;
+    }
+
     // Captura mensagens de erro formatadas
     const errors = loginErrorMessage(loginResult);
 
@@ -35,6 +40,11 @@ export const loader = async ({ request }) => {
     return { errors, polarisTranslations };
   } catch (error) {
     console.error("Erro no loader de login:", error);
+
+    // Se o erro for um redirecionamento, permita que ele prossiga
+    if (error instanceof Response && error.status === 302) {
+      return error;
+    }
 
     // Throw Response em vez de Error para melhor tratamento no ErrorBoundary
     throw new Response(
@@ -54,7 +64,12 @@ export const action = async ({ request }) => {
     // Tenta realizar o login quando o formulário é submetido
     const loginResult = await login(request);
 
-    // Captura mensagens de erro formatadas
+    // Se loginResult for uma resposta de redirecionamento, retorne-a diretamente
+    if (loginResult instanceof Response && loginResult.status === 302) {
+      return loginResult;
+    }
+
+    // Caso contrário, captura mensagens de erro formatadas
     const errors = loginErrorMessage(loginResult);
 
     // Retorna os resultados
@@ -62,7 +77,12 @@ export const action = async ({ request }) => {
   } catch (error) {
     console.error("Erro na action de login:", error);
 
-    // Throw Response em vez de Error para melhor tratamento no ErrorBoundary
+    // Se o erro for um redirecionamento, permita que ele prossiga
+    if (error instanceof Response && error.status === 302) {
+      return error;
+    }
+
+    // Throw Response para outros erros
     throw new Response(
       JSON.stringify({ message: "Erro durante o processo de login" }),
       {
@@ -131,14 +151,21 @@ export function ErrorBoundary() {
       }
     } catch (e) {
       // Se não for JSON, usa o texto bruto
-      errorDetails = error.data;
+      errorDetails =
+        typeof error.data === "string"
+          ? error.data
+          : "Erro durante o processamento";
     }
   } else if (error instanceof Error) {
     errorMessage = error.message;
     // Em desenvolvimento, podemos mostrar mais detalhes do erro
     if (process.env.NODE_ENV === "development") {
-      errorDetails = error.stack;
+      errorDetails = typeof error.stack === "string" ? error.stack : "";
     }
+  } else if (error && typeof error === "object") {
+    // Caso seja um objeto, converter para string
+    errorMessage = "Erro de aplicação";
+    errorDetails = JSON.stringify(error);
   }
 
   // Renderiza um componente Polaris com a mensagem de erro

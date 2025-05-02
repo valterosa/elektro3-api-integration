@@ -49,13 +49,22 @@ const isProduction = MODE === "production";
 
 // Função para encontrar uma porta disponível
 async function findAvailablePort(startPort) {
+  // Garantir que startPort seja tratado como número
+  startPort = parseInt(startPort, 10);
+
+  // Verificar se a porta é válida
+  if (isNaN(startPort) || startPort < 0 || startPort >= 65536) {
+    console.warn(`Porta inválida: ${startPort}, usando porta padrão 3000`);
+    startPort = 3000;
+  }
+
   const net = await import("net");
 
   return new Promise((resolve) => {
     const server = net.createServer();
     server.unref();
     server.on("error", () => {
-      // Porta em uso, tentar a próxima
+      // Porta em uso, tentar a próxima (garantindo tratamento numérico)
       resolve(findAvailablePort(startPort + 1));
     });
 

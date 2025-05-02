@@ -28,11 +28,12 @@ export default defineConfig({
     port: parseInt(process.env.PORT || "3000"),
     strictPort: false, // Permite que o Vite use outra porta se a principal estiver ocupada
     hmr: {
-      // O servidor Express já configura o HMR com uma porta disponível
+      // Configuração para evitar conflito de porta
       clientPort: "auto", // Usar detecção automática
-      port: "auto", // Deixar o Vite escolher uma porta disponível
+      port: 24681, // Porta alternativa para evitar o conflito com 24680
       host: "localhost",
       protocol: "ws",
+      overlay: true, // Mostrar overlay em caso de erros
     },
   },
 
