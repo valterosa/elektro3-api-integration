@@ -206,7 +206,11 @@ export default function Index() {
                   >
                     Connection Test
                   </Button>
-                  <Button fullWidth onClick={generateProduct}>
+                  <Button
+                    fullWidth
+                    onClick={generateProduct}
+                    loading={isLoading}
+                  >
                     Generate Sample Product
                   </Button>
                 </BlockStack>
