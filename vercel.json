@@ -26,15 +26,10 @@
       ]
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/(.*)",
-      "destination": "/api/[...remix]"
+      "src": "/(.*)",
+      "dest": "/api/index.js"
     }
-  ],
-  "functions": {
-    "api/[...remix].js": {
-      "includeFiles": "build/server/**"
-    }
-  }
+  ]
 }

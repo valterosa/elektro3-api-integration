@@ -9,9 +9,9 @@ import {
   isRouteErrorResponse,
 } from "@remix-run/react";
 import { json } from "@remix-run/node";
-import { Provider as AppBridgeProvider } from "@shopify/app-bridge-react";
+import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
-import polarisStyles from "@shopify/polaris/build/esm/styles.css";
+import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import { authenticate } from "./shopify.server";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
@@ -54,11 +54,11 @@ export default function App() {
       </head>
       <body>
         {config ? (
-          <AppBridgeProvider config={config}>
+          <AppProvider config={config}>
             <PolarisAppProvider>
               <Outlet />
             </PolarisAppProvider>
-          </AppBridgeProvider>
+          </AppProvider>
         ) : (
           <Outlet />
         )}

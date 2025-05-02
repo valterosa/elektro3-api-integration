@@ -14,7 +14,7 @@ import {
 } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { json } from "@remix-run/node";
-import { shopifyAdminClient } from "../lib/shopify-admin-client";
+import shopifyAdminClient from "../lib/shopify-admin-client";
 
 export const loader = async ({ request }) => {
   return null;
@@ -56,7 +56,7 @@ export const action = async ({ request }) => {
       product: {
         title: `${color} Snowboard`,
       },
-    },
+    }
   );
 
   const product = productResponse.data.productCreate.product;
@@ -82,7 +82,7 @@ export const action = async ({ request }) => {
     {
       productId: product.id,
       variants: [{ id: variantId, price: "100.00" }],
-    },
+    }
   );
 
   return json({
@@ -101,7 +101,7 @@ export default function Index() {
     fetcher.formMethod === "POST";
   const productId = fetcher.data?.product?.id.replace(
     "gid://shopify/Product/",
-    "",
+    ""
   );
 
   useEffect(() => {
