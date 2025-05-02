@@ -1,5 +1,6 @@
 {
-  "buildCommand": "npm run build",
   "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": "build",
   "rewrites": [{ "source": "/(.*)", "destination": "/api/$1" }]
 }
