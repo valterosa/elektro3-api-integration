@@ -1,11 +1,40 @@
 {
   "version": 2,
-  "buildCommand": "cd elektro3-api-module && npm install && npm run build",
-  "outputDirectory": "elektro3-api-module/build",
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/$1" }],
+  "buildCommand": "npm run build",
+  "outputDirectory": "build/client",
+  "framework": "remix",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: http:; connect-src 'self' https://api.elektro3.com https://*.myshopify.com wss: ws:; frame-src 'self' https://cdn.shopify.com https://*.myshopify.com; frame-ancestors 'self' https://*.myshopify.com https://admin.shopify.com"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/[...remix]"
+    }
+  ],
   "functions": {
-    "api/**/*": {
-      "includeFiles": "elektro3-api-module/build/**"
+    "api/[...remix].js": {
+      "includeFiles": "build/server/**"
     }
   }
 }

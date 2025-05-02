@@ -1,244 +1,99 @@
-// Script para testar a conexão com as APIs (Elektro3 e Shopify)
-require("dotenv").config();
-const fetch = require("node-fetch");
-
-// Configurações da API Elektro3
-const ELEKTRO3_API_URL = process.env.ELEKTRO3_API_URL;
-const ELEKTRO3_CLIENT_ID = process.env.ELEKTRO3_CLIENT_ID;
-const ELEKTRO3_SECRET_KEY = process.env.ELEKTRO3_SECRET_KEY;
-const ELEKTRO3_USERNAME = process.env.ELEKTRO3_USERNAME;
-const ELEKTRO3_PASSWORD = process.env.ELEKTRO3_PASSWORD;
-
-// Configurações do Shopify
-const SHOPIFY_SHOP = process.env.SHOPIFY_SHOP;
-const SHOPIFY_ADMIN_API_ACCESS_TOKEN =
-  process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN;
-
 /**
- * Testar conexão com a API Elektro3
+ * Script para testar a conexão com a API da Elektro3 e a API do Shopify
+ * Útil para validar as credenciais e a conectividade antes de executar a aplicação completa
  */
-async function testElektro3Connection() {
-  console.log("---------- TESTE DE CONEXÃO COM API ELEKTRO3 ----------");
-  console.log("URL da API:", ELEKTRO3_API_URL);
-  console.log("Credenciais configuradas:");
-  console.log("- Client ID:", ELEKTRO3_CLIENT_ID);
-  console.log("- Username:", ELEKTRO3_USERNAME);
 
-  // Verificando se o domínio está acessível
+import { testConnections } from "./app/lib/elektro3-api.server.js";
+import { directAdminClient } from "./app/lib/shopify-admin-client.js";
+import { ELEKTRO3_CONFIG, SHOPIFY_CONFIG } from "./app/config.js";
+
+console.log("🔍 Iniciando teste de conexão com as APIs...\n");
+
+// Exibir as configurações atuais (mascaradas para segurança)
+console.log("Configurações Elektro3:");
+console.log("  API URL:", ELEKTRO3_CONFIG.API_URL);
+console.log(
+  "  Credenciais configuradas:",
+  !!ELEKTRO3_CONFIG.CLIENT_ID &&
+    !!ELEKTRO3_CONFIG.SECRET_KEY &&
+    !!ELEKTRO3_CONFIG.USERNAME &&
+    !!ELEKTRO3_CONFIG.PASSWORD
+);
+
+console.log("\nConfigurações Shopify:");
+console.log("  Loja:", SHOPIFY_CONFIG.SHOP);
+console.log("  API Version:", SHOPIFY_CONFIG.API_VERSION);
+console.log(
+  "  Credenciais configuradas:",
+  !!SHOPIFY_CONFIG.API_KEY &&
+    !!SHOPIFY_CONFIG.API_SECRET &&
+    !!SHOPIFY_CONFIG.ADMIN_API_ACCESS_TOKEN
+);
+
+// Função principal para testar as conexões
+async function runConnectionTests() {
   try {
-    console.log("\nVerificando se o domínio está acessível...");
-    const pingResponse = await fetch(ELEKTRO3_API_URL);
-    console.log("Status do ping:", pingResponse.status);
-    console.log("Resposta do ping:", await pingResponse.text());
-  } catch (error) {
-    console.log("Erro ao fazer ping no domínio da API:", error.message);
-    if (error.code === "ENOTFOUND") {
-      console.log(
-        "O domínio não foi encontrado. Verifique se a URL está correta."
-      );
-    }
-  }
+    console.log("\n🔄 Testando conexão com ambas as APIs...");
 
-  // Tentativas de autenticação com diferentes endpoints e formatos
-  const authEndpoints = [
-    "/api/login",
-    "/login",
-    "/auth",
-    "/api/auth",
-    "/api/v1/auth",
-    "/oauth/token",
-  ];
+    // Tentar o método de teste unificado
+    const results = await testConnections();
 
-  console.log("\nTestando vários endpoints de autenticação...");
+    console.log("\n📊 Resultados do teste:");
 
-  for (const endpoint of authEndpoints) {
-    try {
-      console.log(`\nTentando endpoint: ${ELEKTRO3_API_URL}${endpoint}`);
-
-      // Formato 1: clientId e secretKey
-      const authPayload1 = {
-        clientId: ELEKTRO3_CLIENT_ID,
-        secretKey: ELEKTRO3_SECRET_KEY,
-        username: ELEKTRO3_USERNAME,
-        password: ELEKTRO3_PASSWORD,
-      };
-
-      // Formato 2: client_id e client_secret
-      const authPayload2 = {
-        client_id: ELEKTRO3_CLIENT_ID,
-        client_secret: ELEKTRO3_SECRET_KEY,
-        username: ELEKTRO3_USERNAME,
-        password: ELEKTRO3_PASSWORD,
-      };
-
-      // Formato 3: apenas username e password
-      const authPayload3 = {
-        username: ELEKTRO3_USERNAME,
-        password: ELEKTRO3_PASSWORD,
-      };
-
-      // Formato 4: identifier e password
-      const authPayload4 = {
-        identifier: ELEKTRO3_USERNAME,
-        password: ELEKTRO3_PASSWORD,
-      };
-
-      const payloads = [authPayload1, authPayload2, authPayload3, authPayload4];
-
-      for (let i = 0; i < payloads.length; i++) {
-        try {
-          console.log(
-            `  Tentando formato de payload ${i + 1}:`,
-            JSON.stringify(payloads[i])
-          );
-
-          const authResponse = await fetch(`${ELEKTRO3_API_URL}${endpoint}`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payloads[i]),
-          });
-
-          const status = authResponse.status;
-
-          try {
-            const responseBody = await authResponse.text();
-            console.log(`  Resposta (${status}):`, responseBody);
-
-            if (status >= 200 && status < 300) {
-              console.log(
-                "\n✅ SUCESSO! Conexão com a API Elektro3 funcionou!"
-              );
-              console.log(
-                "Endpoint de autenticação:",
-                `${ELEKTRO3_API_URL}${endpoint}`
-              );
-              console.log("Formato de payload:", JSON.stringify(payloads[i]));
-              return {
-                success: true,
-                endpoint,
-                payload: payloads[i],
-                response: responseBody,
-              };
-            }
-          } catch (e) {
-            console.log(`  Erro ao processar resposta:`, e.message);
-          }
-        } catch (e) {
-          console.log(`  Erro ao tentar formato ${i + 1}:`, e.message);
-        }
+    // Mostrar resultados para Elektro3
+    console.log("\nElektro3 API:");
+    if (results.elektro3.success) {
+      console.log("  ✅ CONECTADO");
+      console.log("  📝 " + results.elektro3.message);
+      if (results.elektro3.token) {
+        console.log("  🔑 Token parcial: " + results.elektro3.token);
       }
-    } catch (error) {
-      console.log(`Erro ao tentar endpoint ${endpoint}:`, error.message);
-    }
-  }
-
-  console.log(
-    "\n❌ FALHA: Não foi possível conectar à API Elektro3 com as credenciais fornecidas"
-  );
-  return { success: false };
-}
-
-/**
- * Testar conexão com a API Shopify
- */
-async function testShopifyConnection() {
-  console.log("\n---------- TESTE DE CONEXÃO COM API SHOPIFY ----------");
-  console.log("Loja Shopify:", SHOPIFY_SHOP);
-  console.log(
-    "Token de acesso configurado:",
-    `${SHOPIFY_ADMIN_API_ACCESS_TOKEN.substring(0, 5)}...`
-  );
-
-  try {
-    console.log("\nTestando acesso à API Shopify...");
-
-    // Tentar buscar informações da loja
-    const shopResponse = await fetch(
-      `https://${SHOPIFY_SHOP}/admin/api/2023-04/shop.json`,
-      {
-        headers: {
-          "X-Shopify-Access-Token": SHOPIFY_ADMIN_API_ACCESS_TOKEN,
-        },
-      }
-    );
-
-    const status = shopResponse.status;
-    console.log("Status da resposta:", status);
-
-    const responseBody = await shopResponse.text();
-    console.log("Resposta:", responseBody);
-
-    if (status === 200) {
-      console.log("\n✅ SUCESSO! Conexão com a API Shopify funcionou!");
-      return { success: true, response: responseBody };
     } else {
-      console.log("\n❌ FALHA: Erro ao conectar à API Shopify");
-      return { success: false, error: responseBody };
+      console.log("  ❌ FALHA");
+      console.log("  ❗ " + results.elektro3.message);
     }
-  } catch (error) {
-    console.log("Erro ao conectar à API Shopify:", error.message);
-    return { success: false, error: error.message };
-  }
-}
 
-/**
- * Função principal
- */
-async function main() {
-  try {
-    console.log(
-      "================================================================="
-    );
-    console.log("TESTE DE CONEXÃO COM AS APIS (ELEKTRO3 E SHOPIFY)");
-    console.log(
-      "=================================================================\n"
-    );
+    // Mostrar resultados para Shopify
+    console.log("\nShopify API:");
+    if (results.shopify.success) {
+      console.log("  ✅ CONECTADO");
+      console.log("  📝 " + results.shopify.message);
+      if (results.shopify.shopName) {
+        console.log("  🏪 Nome da loja: " + results.shopify.shopName);
+      }
+    } else {
+      console.log("  ❌ FALHA");
+      console.log("  ❗ " + results.shopify.message);
+    }
 
-    // Testar conexão com a API Elektro3
-    const elektro3Result = await testElektro3Connection();
+    // Tentar acesso direto ao Shopify caso o teste principal falhe
+    if (!results.shopify.success && directAdminClient) {
+      console.log("\n🔄 Tentando método alternativo de conexão ao Shopify...");
+      try {
+        const shopData = await directAdminClient.rest("shop.json");
+        console.log("  ✅ Conexão direta bem-sucedida!");
+        console.log("  🏪 Nome da loja: " + shopData.shop.name);
+      } catch (error) {
+        console.log("  ❌ Falha na conexão direta:", error.message);
+      }
+    }
 
-    // Testar conexão com a API Shopify
-    const shopifyResult = await testShopifyConnection();
-
-    console.log(
-      "\n================================================================="
-    );
-    console.log("RESULTADO DOS TESTES");
-    console.log(
-      "================================================================="
-    );
-    console.log(
-      "Elektro3 API:",
-      elektro3Result.success ? "CONECTADO ✅" : "FALHA ❌"
-    );
-    console.log(
-      "Shopify API:",
-      shopifyResult.success ? "CONECTADO ✅" : "FALHA ❌"
-    );
-    console.log(
-      "=================================================================\n"
-    );
-
-    if (elektro3Result.success && shopifyResult.success) {
+    console.log("\n📋 Resumo dos testes:");
+    if (results.elektro3.success && results.shopify.success) {
+      console.log("✅ Ambas as conexões estão funcionando corretamente!");
+    } else if (!results.elektro3.success && !results.shopify.success) {
       console.log(
-        "Ambas as APIs estão funcionando! Você pode prosseguir com a importação de produtos."
+        "❌ Ambas as conexões falharam. Verifique suas credenciais e configurações."
       );
     } else {
       console.log(
-        "Há problemas de conexão com uma ou ambas as APIs. Corrija os problemas antes de continuar."
+        "⚠️ Uma das conexões falhou. Revise as configurações específicas."
       );
     }
-
-    return {
-      elektro3: elektro3Result,
-      shopify: shopifyResult,
-    };
   } catch (error) {
-    console.error("Erro durante os testes de conexão:", error);
+    console.error("\n❌ Erro ao executar testes de conexão:", error);
   }
 }
 
 // Executar os testes
-main();
+runConnectionTests();

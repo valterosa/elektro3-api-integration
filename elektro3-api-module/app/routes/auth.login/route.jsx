@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Form, useActionData, useLoaderData } from "@remix-run/react";
+import {
+  Form,
+  useActionData,
+  useLoaderData,
+  isRouteErrorResponse,
+  useRouteError,
+} from "@remix-run/react";
 import {
   AppProvider as PolarisAppProvider,
   Button,
@@ -8,6 +14,7 @@ import {
   Page,
   Text,
   TextField,
+  Banner,
 } from "@shopify/polaris";
 import polarisTranslations from "@shopify/polaris/locales/en.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
@@ -29,6 +36,31 @@ export const action = async ({ request }) => {
     errors,
   };
 };
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+
+  return (
+    <PolarisAppProvider i18n={polarisTranslations}>
+      <Page>
+        <Card>
+          <Banner title="Erro" status="critical">
+            <p>
+              {isRouteErrorResponse(error)
+                ? `${error.status} ${error.statusText}`
+                : error instanceof Error
+                  ? error.message
+                  : "Ocorreu um erro desconhecido durante o login. Por favor, tente novamente."}
+            </p>
+          </Banner>
+          <div style={{ marginTop: "1rem" }}>
+            <Button url="/auth/login">Tentar novamente</Button>
+          </div>
+        </Card>
+      </Page>
+    </PolarisAppProvider>
+  );
+}
 
 export default function Auth() {
   const loaderData = useLoaderData();
