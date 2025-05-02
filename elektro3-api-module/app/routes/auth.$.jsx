@@ -1,9 +1,10 @@
-import { authenticate } from "../shopify.server";
 import { redirect } from "@remix-run/node";
 
 export const loader = async ({ request }) => {
-  const { admin, shop } = await authenticate.admin(request);
+  // Em vez de usar authenticate.admin, vamos redirecionar
+  // diretamente para a nossa app no Shopify Admin
+  const shop = process.env.SHOPIFY_SHOP || "electro-malho.myshopify.com";
 
-  // Redirect to the Shopify Admin with the embedded app
-  return redirect(`https://${shop}/admin/apps`);
+  // Redirecionar para a custom app no Shopify Admin
+  return redirect(`https://${shop}/admin/apps/elektro3-api-connection`);
 };

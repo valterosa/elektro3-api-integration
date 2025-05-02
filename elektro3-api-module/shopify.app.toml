@@ -1,8 +1,8 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "ae8937bac07720749eeec3a91647f722"
-name = "elektro3-api-module"
-handle = "elektro3-api-module"
+client_id = "4cf8390b0636456a82bab4017d681cba"
+name = "elektro3-API-connection"
+handle = "elektro3-api-connection"
 application_url = "https://elektro3-api-integration.vercel.app"
 embedded = true
 

@@ -3,21 +3,28 @@ import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
-import { authenticate } from "../shopify.server";
+import { json } from "@remix-run/node";
+import { shopifyAdminClient } from "../lib/shopify-admin-client";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
+  // Não precisamos usar authenticate.admin porque estamos
+  // usando diretamente o Admin API Access Token
+  const shop = process.env.SHOPIFY_SHOP || "electro-malho.myshopify.com";
 
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  return json({
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+    shop,
+  });
 };
 
 export default function App() {
-  const { apiKey } = useLoaderData();
+  const { apiKey, shop } = useLoaderData();
+  const shopOrigin = `https://${shop}`;
 
   return (
-    <AppProvider isEmbeddedApp apiKey={apiKey}>
+    <AppProvider isEmbeddedApp apiKey={apiKey} shopOrigin={shopOrigin}>
       <NavMenu>
         <Link to="/app" rel="home">
           Home
