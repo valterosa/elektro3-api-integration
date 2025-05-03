@@ -107,7 +107,7 @@ const shopify = shopifyApp({
   appUrl: getEnvVar("SHOPIFY_APP_URL", DEFAULT_DEV_VALUES.appUrl),
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
-  distribution: AppDistribution.Custom,
+  distribution: AppDistribution.AppStore, // Alterado de Custom para AppStore para aparecer no painel
   future: {
     unstable_newEmbeddedAuthStrategy: true,
     removeRest: true,
@@ -116,6 +116,13 @@ const shopify = shopifyApp({
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
     : {}),
   isEmbeddedApp: true,
+  hooks: {
+    // Hook para depuração que será executado após a autenticação
+    afterAuth: async ({ session, admin, resp }) => {
+      console.log("Autenticação bem-sucedida para a loja:", session.shop);
+      return resp;
+    },
+  },
 });
 
 export default shopify;

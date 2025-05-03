@@ -1,5 +1,5 @@
 import { authenticate } from "../shopify.server";
-import { json, redirect } from "@remix-run/node";
+import { redirect } from "@remix-run/node";
 
 /**
  * Página específica para callback OAuth do Shopify
@@ -19,36 +19,37 @@ export const loader = async ({ request }) => {
     console.log("state:", query.get("state"));
     console.log("code:", query.get("code")?.substring(0, 5) + "...");
 
-    // Processar a autenticação via Shopify SDK
-    // Isso vai automaticamente verificar os parâmetros e completar o fluxo OAuth
-    console.log("Tentando completar autenticação OAuth...");
-    try {
-      // Usar authenticate.admin, que vai tratar o fluxo OAuth completo
-      return await authenticate.admin(request);
-    } catch (authError) {
-      console.log("Erro durante authenticate.admin:", authError);
-
-      // Se o erro for um redirecionamento, deixe passar
-      if (authError instanceof Response && authError.status === 302) {
-        console.log("Redirecionando para:", authError.headers.get("Location"));
-        return authError;
-      }
-
-      throw authError;
+    // Decisão crucial: se não houver parâmetro de código, redirecionar para o app
+    if (!query.get("code") && query.get("shop")) {
+      console.log(
+        `Redirecionando para a página inicial da aplicação para a loja: ${query.get("shop")}`
+      );
+      return redirect("/app");
     }
+
+    // Processar a autenticação via Shopify SDK
+    console.log("Tentando completar autenticação OAuth...");
+
+    // Esse é o método que processa o fluxo OAuth completo incluindo callback
+    const authResponse = await authenticate.admin(request);
+    console.log(
+      "Autenticação completada com sucesso, redirecionando para /app"
+    );
+
+    // Se authenticate.admin não redirecionar automaticamente, forçamos um redirecionamento para /app
+    return redirect("/app");
   } catch (error) {
     console.error("Erro no callback OAuth:", error);
 
-    // Se ainda for um redirecionamento, retorne-o
+    // Se for um redirecionamento, deixamos seguir
     if (error instanceof Response && error.status === 302) {
-      console.log("Redirecionando para:", error.headers.get("Location"));
+      const location = error.headers.get("Location");
+      console.log("Redirecionando para:", location);
       return error;
     }
 
-    // Redirecionar para a página de login em caso de erro
-    return redirect("/auth/login?error=auth_callback_failed");
+    // Outros erros - redirecionar para a página de login
+    console.log("Redirecionando para página de login devido a erro");
+    return redirect("/auth/login?error=callback_failed");
   }
 };
-
-// Não precisamos de um componente React neste arquivo, pois ele apenas
-// processa a autenticação e redireciona o usuário
