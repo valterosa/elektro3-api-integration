@@ -12,6 +12,10 @@ import * as process from "process";
 console.log("Checking environment variables availability:");
 console.log("SHOPIFY_API_KEY present:", !!process.env.SHOPIFY_API_KEY);
 console.log("SHOPIFY_API_SECRET present:", !!process.env.SHOPIFY_API_SECRET);
+console.log(
+  "ENV VARS:",
+  Object.keys(process.env).filter((key) => key.includes("SHOPIFY"))
+);
 console.log("NODE_ENV:", process.env.NODE_ENV);
 
 // Configurações padrão para desenvolvimento local
@@ -35,13 +39,62 @@ function getEnvVar(name, defaultValue = "") {
   return value || "";
 }
 
+// Verificação especial para o segredo da API - tentar diferentes formatos
+function getApiSecretKey() {
+  const possibleKeys = [
+    "SHOPIFY_API_SECRET",
+    "SHOPIFY_API_SECRET_KEY",
+    "SHOPIFY_SECRET",
+    "SHOPIFY_SECRET_KEY",
+  ];
+
+  // Criar um mapa para logging
+  const valueMap = {};
+
+  // Tentar todas as possíveis chaves
+  for (const key of possibleKeys) {
+    const value = process.env[key];
+    valueMap[key] = value
+      ? `***${value.substring(value.length - 4)}`
+      : "undefined";
+
+    if (value) {
+      console.log(
+        `Usando ${key} como API Secret Key: ***${value.substring(value.length - 4)}`
+      );
+      return value;
+    }
+  }
+
+  // Logar os valores disponíveis para diagnóstico
+  console.log("Tentativas de API Secret Key:", valueMap);
+
+  // Em modo de produção, definir explicitamente o valor
+  if (process.env.NODE_ENV === "production") {
+    // Configurar diretamente o valor se estivermos no Vercel
+    const hardcodedApiSecret = "ecb1f187b652f4b491595ce23cc5405c";
+    console.log(
+      "Modo de produção detectado. Usando API Secret Key hard-coded:",
+      hardcodedApiSecret
+        ? `***${hardcodedApiSecret.substring(hardcodedApiSecret.length - 4)}`
+        : "undefined"
+    );
+    return hardcodedApiSecret;
+  }
+
+  // Para desenvolvimento, usar valor padrão
+  console.log(
+    "Usando valor padrão para API Secret Key em ambiente de desenvolvimento"
+  );
+  return DEFAULT_DEV_VALUES.apiSecretKey;
+}
+
 // Obter explicitamente a API Secret Key para garantir acesso
-const apiSecretKey =
-  process.env.SHOPIFY_API_SECRET || DEFAULT_DEV_VALUES.apiSecretKey;
+const apiSecretKey = getApiSecretKey();
 console.log(
-  "Using API Secret Key:",
+  "Final API Secret Key:",
   apiSecretKey
-    ? "***" + apiSecretKey.substring(apiSecretKey.length - 4)
+    ? `***${apiSecretKey.substring(apiSecretKey.length - 4)}`
     : "undefined"
 );
 
