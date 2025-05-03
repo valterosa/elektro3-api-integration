@@ -8,7 +8,7 @@ import {
 import { json } from "@remix-run/node";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
-import { NavMenu } from "@shopify/app-bridge-react";
+import { Frame, Navigation } from "@shopify/polaris";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import { authenticate } from "../shopify.server";
 
@@ -36,16 +36,47 @@ export default function App() {
 
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey} shopOrigin={shopOrigin}>
-      <NavMenu>
-        <Link to="/app" rel="home">
-          Home
-        </Link>
-        <Link to="/app/elektro3-importer">Elektro3 Importer</Link>
-        <Link to="/app/connection-test">Connection Test</Link>
-        <Link to="/app/graphql-admin-api">GraphQL Admin API</Link>
-        <Link to="/app/additional">Additional page</Link>
-      </NavMenu>
-      <Outlet />
+      <Frame>
+        <div style={{ display: "flex", height: "100%" }}>
+          <div
+            style={{
+              width: "220px",
+              borderRight: "1px solid #ddd",
+              padding: "10px",
+            }}
+          >
+            <Navigation location="">
+              <Navigation.Section
+                items={[
+                  {
+                    url: "/app",
+                    label: "Home",
+                  },
+                  {
+                    url: "/app/elektro3-importer",
+                    label: "Elektro3 Importer",
+                  },
+                  {
+                    url: "/app/connection-test",
+                    label: "Connection Test",
+                  },
+                  {
+                    url: "/app/graphql-admin-api",
+                    label: "GraphQL Admin API",
+                  },
+                  {
+                    url: "/app/additional",
+                    label: "Additional Page",
+                  },
+                ]}
+              />
+            </Navigation>
+          </div>
+          <div style={{ flex: 1, padding: "1rem" }}>
+            <Outlet />
+          </div>
+        </div>
+      </Frame>
     </AppProvider>
   );
 }

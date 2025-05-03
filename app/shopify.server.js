@@ -107,7 +107,7 @@ const shopify = shopifyApp({
   appUrl: getEnvVar("SHOPIFY_APP_URL", DEFAULT_DEV_VALUES.appUrl),
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
-  distribution: AppDistribution.AppStore, // Alterado de Custom para AppStore para aparecer no painel
+  distribution: AppDistribution.Custom, // Correto para Custom Apps do Shopify
   future: {
     unstable_newEmbeddedAuthStrategy: true,
     removeRest: true,
