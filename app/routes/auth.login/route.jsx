@@ -20,6 +20,7 @@ import polarisTranslations from "@shopify/polaris/locales/en.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import { json } from "@remix-run/node";
 import { login } from "../../shopify.server";
+import { OAuthRedirect } from "../../components/OAuthRedirect";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
@@ -34,18 +35,38 @@ export const loader = async ({ request }) => {
 
   // Se shop estiver na URL, tenta fazer login diretamente
   if (shop) {
-    const response = await login(request);
-    console.log("Login response type:", typeof response);
+    try {
+      const response = await login(request);
+      console.log("Login response type:", typeof response);
 
-    if (response instanceof Response) {
-      console.log("Login redirecting to:", response.headers.get("Location"));
-      return response;
+      if (response instanceof Response && response.status === 302) {
+        const redirectUrl = response.headers.get("Location");
+        console.log("Login redirecting to:", redirectUrl);
+
+        // Em vez de retornar um redirecionamento 302, retorna os dados para renderização
+        return json({
+          polarisTranslations: {},
+          redirectUrl,
+          shop,
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao processar login automático:", error);
+      if (error instanceof Response && error.status === 302) {
+        const redirectUrl = error.headers.get("Location");
+        return json({
+          polarisTranslations: {},
+          redirectUrl,
+          shop,
+        });
+      }
     }
   }
 
   // Retorna os dados necessários para renderizar a página
   return json({
     polarisTranslations: {},
+    shop: shop || "",
   });
 };
 
@@ -53,16 +74,23 @@ export const loader = async ({ request }) => {
 export const action = async ({ request }) => {
   try {
     // Tenta realizar o login quando o formulário é submetido
+    const formData = await request.formData();
+    const shop = formData.get("shop");
+
     const response = await login(request);
 
     // Log para depuração
     console.log("Login action response type:", typeof response);
 
-    // Se for uma resposta HTTP, retorna-a diretamente
-    if (response instanceof Response) {
-      const location = response.headers.get("Location");
-      console.log("Login action redirecting to:", location);
-      return response;
+    // Se for um redirecionamento, retorna dados para renderizar o componente OAuthRedirect
+    if (response instanceof Response && response.status === 302) {
+      const redirectUrl = response.headers.get("Location");
+      console.log("Login action redirecting to:", redirectUrl);
+
+      return json({
+        redirectUrl,
+        shop,
+      });
     }
 
     // Retorna os erros formatados
@@ -76,9 +104,12 @@ export const action = async ({ request }) => {
   } catch (error) {
     console.error("Erro na action de login:", error);
 
-    // Se o erro for um redirecionamento, permita que ele aconteça
+    // Se o erro for um redirecionamento, envie os dados para o cliente
     if (error instanceof Response && error.status === 302) {
-      return error;
+      const redirectUrl = error.headers.get("Location");
+      return json({
+        redirectUrl,
+      });
     }
 
     // Retorna um erro genérico para outros problemas
@@ -96,8 +127,16 @@ export const action = async ({ request }) => {
 export default function Auth() {
   const loaderData = useLoaderData();
   const actionData = useActionData();
-  const [shop, setShop] = useState("");
-  const { errors } = actionData || loaderData;
+  const [shop, setShop] = useState(loaderData.shop || "");
+
+  // Unifica os dados do loader e da action
+  const data = { ...loaderData, ...actionData };
+  const { errors, redirectUrl } = data;
+
+  // Se houver uma URL de redirecionamento, renderiza o componente OAuthRedirect
+  if (redirectUrl) {
+    return <OAuthRedirect redirectUrl={redirectUrl} />;
+  }
 
   return (
     <PolarisAppProvider i18n={loaderData.polarisTranslations}>
