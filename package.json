@@ -5,7 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node fix-shopify-json-import.js && remix vite:build",
+    "build": "prisma generate && node fix-shopify-json-import.js && remix vite:build",
     "dev": "set NODE_ENV=development&& node server.mjs",
     "dev:local": "node dev-server.js",
     "dev:express": "NODE_ENV=development node express-server.js",
@@ -27,7 +27,8 @@
     "fix-json-import": "node fix-shopify-json-import.js",
     "check-env": "node check-environment.js",
     "test-connection": "node test-connection.js",
-    "prepare-local": "npm run check-env && npm run fix-imports && npm run fix-json-import"
+    "prepare-local": "npm run check-env && npm run fix-imports && npm run fix-json-import",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",
