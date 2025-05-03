@@ -18,80 +18,74 @@ import {
 } from "@shopify/polaris";
 import polarisTranslations from "@shopify/polaris/locales/en.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
+import { ActionFunctionArgs, LoaderFunctionArgs, json } from "@remix-run/node";
 import { login } from "../../shopify.server";
-import { loginErrorMessage } from "./error.server";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
-export const loader = async ({ request }) => {
-  try {
-    // Tenta realizar o login
-    const loginResult = await login(request);
-
-    // Se loginResult for uma resposta de redirecionamento, retorne-a diretamente
-    if (loginResult instanceof Response && loginResult.status === 302) {
-      return loginResult;
+// Manipula o carregamento da página de login
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  // Verificando se há parâmetros de consulta na URL
+  const url = new URL(request.url);
+  const shop = url.searchParams.get("shop");
+  
+  // Log para depuração
+  console.log("Login loader - shop parameter:", shop);
+  
+  // Se shop estiver na URL, tenta fazer login diretamente
+  if (shop) {
+    const response = await login(request);
+    console.log("Login response type:", typeof response);
+    
+    if (response instanceof Response) {
+      console.log("Login redirecting to:", response.headers.get("Location"));
+      return response;
     }
-
-    // Captura mensagens de erro formatadas
-    const errors = loginErrorMessage(loginResult);
-
-    // Retorna os resultados como JSON com as traduções do Polaris
-    return { errors, polarisTranslations };
-  } catch (error) {
-    console.error("Erro no loader de login:", error);
-
-    // Se o erro for um redirecionamento, permita que ele prossiga
-    if (error instanceof Response && error.status === 302) {
-      return error;
-    }
-
-    // Throw Response em vez de Error para melhor tratamento no ErrorBoundary
-    throw new Response(
-      JSON.stringify({ message: "Erro durante o processo de login" }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
   }
+  
+  // Retorna os dados necessários para renderizar a página
+  return json({
+    polarisTranslations: {}
+  });
 };
 
-export const action = async ({ request }) => {
+// Manipula a submissão do formulário de login
+export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     // Tenta realizar o login quando o formulário é submetido
-    const loginResult = await login(request);
-
-    // Se loginResult for uma resposta de redirecionamento, retorne-a diretamente
-    if (loginResult instanceof Response && loginResult.status === 302) {
-      return loginResult;
+    const response = await login(request);
+    
+    // Log para depuração
+    console.log("Login action response type:", typeof response);
+    
+    // Se for uma resposta HTTP, retorna-a diretamente
+    if (response instanceof Response) {
+      const location = response.headers.get("Location");
+      console.log("Login action redirecting to:", location);
+      return response;
     }
-
-    // Caso contrário, captura mensagens de erro formatadas
-    const errors = loginErrorMessage(loginResult);
-
-    // Retorna os resultados
-    return { errors };
-  } catch (error) {
+    
+    // Retorna os erros formatados
+    return json({ 
+      errors: { 
+        shop: response.shop || null,
+        general: "Ocorreu um erro durante o login. Verifique o nome da loja e tente novamente."
+      } 
+    });
+  } catch (error: any) {
     console.error("Erro na action de login:", error);
-
-    // Se o erro for um redirecionamento, permita que ele prossiga
+    
+    // Se o erro for um redirecionamento, permita que ele aconteça
     if (error instanceof Response && error.status === 302) {
       return error;
     }
-
-    // Throw Response para outros erros
-    throw new Response(
-      JSON.stringify({ message: "Erro durante o processo de login" }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    
+    // Retorna um erro genérico para outros problemas
+    return json({ 
+      errors: { 
+        general: "Ocorreu um erro inesperado. Por favor, tente novamente."
+      } 
+    }, { status: 500 });
   }
 };
 
