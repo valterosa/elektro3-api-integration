@@ -7,9 +7,47 @@ function isVercelProduction() {
   return process.env.VERCEL === "1" && process.env.NODE_ENV === "production";
 }
 
+// Função para configurar a variável DATABASE_URL se não estiver presente
+function setupDatabaseUrlIfNeeded() {
+  if (
+    !process.env.DATABASE_URL &&
+    process.env.DATABASE_URL_POSTGRES_PRISMA_URL
+  ) {
+    console.log(
+      "DATABASE_URL não está definida. Usando DATABASE_URL_POSTGRES_PRISMA_URL como alternativa."
+    );
+    process.env.DATABASE_URL = process.env.DATABASE_URL_POSTGRES_PRISMA_URL;
+    return true;
+  } else if (
+    !process.env.DATABASE_URL &&
+    process.env.DATABASE_URL_POSTGRES_URL
+  ) {
+    console.log(
+      "DATABASE_URL não está definida. Usando DATABASE_URL_POSTGRES_URL como alternativa."
+    );
+    process.env.DATABASE_URL = process.env.DATABASE_URL_POSTGRES_URL;
+    return true;
+  } else if (!process.env.DATABASE_URL) {
+    console.error(
+      "Nenhuma variável de ambiente de conexão com banco de dados disponível!"
+    );
+    return false;
+  }
+
+  console.log("DATABASE_URL já está configurada corretamente.");
+  return true;
+}
+
 // Função para inicializar o banco de dados
 async function initializeDatabase() {
   console.log("Iniciando setup do Prisma...");
+
+  // Primeiro, configurar a variável DATABASE_URL se necessário
+  if (!setupDatabaseUrlIfNeeded()) {
+    throw new Error(
+      "Não foi possível configurar a conexão com o banco de dados!"
+    );
+  }
 
   try {
     // Verificar se precisamos executar as migrações ou criar diretamente as tabelas
