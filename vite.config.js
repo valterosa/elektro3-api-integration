@@ -2,6 +2,7 @@ import { vitePlugin as remix } from "@remix-run/dev";
 import { defineConfig } from "vite";
 import { installGlobals } from "@remix-run/node";
 import { resolve } from "path";
+import { vercelPreset } from "@vercel/remix/vite";
 
 // Instalar globais do Remix para compatibilidade
 installGlobals();
@@ -62,6 +63,9 @@ export default defineConfig({
     remix({
       // Ignorar arquivos que não devem ser tratados como rotas
       ignoredRouteFiles: ["**/.*", "**/*.test.{js,jsx,ts,tsx}"],
+
+      // Adicionar o preset do Vercel para melhor compatibilidade
+      presets: [vercelPreset()],
 
       // Habilitar novas funcionalidades do Remix V3
       future: {
