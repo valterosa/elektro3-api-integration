@@ -5,7 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "prisma generate && node fix-shopify-json-import.js && remix vite:build",
+    "build": "prisma generate && node prisma-setup.js && node fix-shopify-json-import.js && remix vite:build",
     "dev": "set NODE_ENV=development&& node server.mjs",
     "dev:local": "node dev-server.js",
     "dev:express": "NODE_ENV=development node express-server.js",
