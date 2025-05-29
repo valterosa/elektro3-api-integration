@@ -20,7 +20,8 @@ export default defineConfig({
     alias: {
       // Adicionar o alias '~' para apontar para a pasta app
       "~": resolve(__dirname, "app"),
-    },  },
+    },
+  },
   // Configurações de servidor de desenvolvimento
   server: {
     port: parseInt(process.env.PORT || "3000"),
