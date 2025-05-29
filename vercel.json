@@ -33,23 +33,5 @@
         }
       ]
     }
-  ],
-  "rewrites": [
-    {
-      "source": "/webhooks/(.*)",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/auth/(.*)",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/api/index.js"
-    }
   ]
 }
