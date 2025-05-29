@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run vercel-build",
   "outputDirectory": "build/client",
   "framework": "remix",
   "headers": [
@@ -24,7 +24,33 @@
           "value": "1; mode=block"
         }
       ]
+    },
+    {
+      "source": "/webhooks/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self'"
+        }
+      ]
     }
   ],
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/index.js" }]
+  "rewrites": [
+    { 
+      "source": "/webhooks/(.*)", 
+      "destination": "/api/index.js" 
+    },
+    { 
+      "source": "/auth/(.*)", 
+      "destination": "/api/index.js" 
+    },
+    { 
+      "source": "/api/(.*)", 
+      "destination": "/api/index.js" 
+    },
+    { 
+      "source": "/(.*)", 
+      "destination": "/api/index.js" 
+    }
+  ]
 }

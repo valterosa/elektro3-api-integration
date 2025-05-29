@@ -1,13 +1,14 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "876289cfbb8474b45386415b86fa5be4"
+# Using environment variables for Vercel deployment
+client_id = "${env.SHOPIFY_API_KEY}"
 name = "elektro3-api-integration"
 handle = "elektro3-api-integration"
-application_url = "https://beef-gothic-teachers-visits.trycloudflare.com"
+application_url = "${env.SHOPIFY_APP_URL}"
 embedded = true
 
 [build]
-automatically_update_urls_on_dev = true
+automatically_update_urls_on_dev = false
 include_config_on_deploy = true
 
 [webhooks]
@@ -15,13 +16,13 @@ api_version = "2025-04"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_customers,read_orders,read_products,write_customers,write_orders,write_products"
+scopes = "${env.SCOPES}"
 
 [auth]
 redirect_urls = [
-  "https://beef-gothic-teachers-visits.trycloudflare.com/auth/callback",
-  "https://beef-gothic-teachers-visits.trycloudflare.com/auth/shopify/callback",
-  "https://beef-gothic-teachers-visits.trycloudflare.com/api/auth/callback"
+  "${env.SHOPIFY_APP_URL}/auth/callback",
+  "${env.SHOPIFY_APP_URL}/auth/shopify/callback",
+  "${env.SHOPIFY_APP_URL}/api/auth/callback"
 ]
 
 [pos]
