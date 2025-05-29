@@ -17,8 +17,8 @@ export function useNavigate() {
         // Use App Bridge navigation for embedded app context
         // Using the app bridge dispatch method directly
         appBridge.dispatch({
-          type: 'APP::NAVIGATE',
-          payload: { path: to }
+          type: "APP::NAVIGATE",
+          payload: { path: to },
         });
       } else {
         // Fall back to Remix navigation outside of embedded context
