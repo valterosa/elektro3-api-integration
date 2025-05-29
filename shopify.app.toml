@@ -1,41 +1,27 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "4cf8390b0636456a82bab4017d681cba"
-name = "Elektro3 Integração"
+client_id = "876289cfbb8474b45386415b86fa5be4"
+name = "elektro3-api-integration"
 handle = "elektro3-api-integration"
-application_url = "https://elektro3-api-integration-electro-malho.vercel.app"
+application_url = "https://beef-gothic-teachers-visits.trycloudflare.com"
 embedded = true
 
 [build]
-include_config_on_deploy = true
 automatically_update_urls_on_dev = true
+include_config_on_deploy = true
 
 [webhooks]
 api_version = "2025-04"
 
-  [[webhooks.subscriptions]]
-  topics = [ "app/uninstalled" ]
-  uri = "/webhooks/app/uninstalled"
-
-  [[webhooks.subscriptions]]
-  topics = [ "app/scopes_update" ]
-  uri = "/webhooks/app/scopes_update"
-
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products,read_products,write_customers,read_customers,write_orders,read_orders"
+scopes = "read_customers,read_orders,read_products,write_customers,write_orders,write_products"
 
 [auth]
 redirect_urls = [
-  "https://elektro3-api-integration-electro-malho.vercel.app/auth/callback",
-  "https://elektro3-api-integration-electro-malho.vercel.app/auth/shopify/callback",
-  "https://elektro3-api-integration-electro-malho.vercel.app/api/auth/callback",
-  "http://localhost:3000/auth/callback",
-  "http://localhost:3000/auth/shopify/callback",
-  "http://localhost:3000/api/auth/callback",
-  "http://localhost:30001/auth/callback",
-  "http://localhost:30001/auth/shopify/callback",
-  "http://localhost:30001/api/auth/callback"
+  "https://beef-gothic-teachers-visits.trycloudflare.com/auth/callback",
+  "https://beef-gothic-teachers-visits.trycloudflare.com/auth/shopify/callback",
+  "https://beef-gothic-teachers-visits.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

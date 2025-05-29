@@ -3,9 +3,8 @@ import { createReadableStreamFromReadable } from "@remix-run/node";
 import { RemixServer } from "@remix-run/react";
 import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
-import { createRequestHandler } from "@remix-run/express";
-import { renderToString } from "react-dom/server";
-import { isRouteErrorResponse } from "@remix-run/react";
+
+const ABORT_DELAY = 5_000;
 
 export default function handleRequest(
   request,
@@ -14,61 +13,113 @@ export default function handleRequest(
   remixContext,
   loadContext
 ) {
-  // Configura uma função de tratamento de erro global
-  if (remixContext.staticHandlerContext?.serverHandoffString) {
-    try {
-      const { loaderErrors, actionErrors } = JSON.parse(
-        remixContext.staticHandlerContext.serverHandoffString
+  return isbot(request.headers.get("user-agent") || "")
+    ? handleBotRequest(
+        request,
+        responseStatusCode,
+        responseHeaders,
+        remixContext
+      )
+    : handleBrowserRequest(
+        request,
+        responseStatusCode,
+        responseHeaders,
+        remixContext
       );
+}
 
-      if (loaderErrors || actionErrors) {
-        console.error("Erros detectados no contexto do servidor:", {
-          loaderErrors,
-          actionErrors,
-        });
+function handleBotRequest(
+  request,
+  responseStatusCode,
+  responseHeaders,
+  remixContext
+) {
+  return new Promise((resolve, reject) => {
+    let shellRendered = false;
+    const { pipe, abort } = renderToPipeableStream(
+      <RemixServer
+        context={remixContext}
+        url={request.url}
+        abortDelay={ABORT_DELAY}
+      />,
+      {
+        onAllReady() {
+          shellRendered = true;
+          const body = new PassThrough();
+          const stream = createReadableStreamFromReadable(body);
+
+          responseHeaders.set("Content-Type", "text/html");
+
+          resolve(
+            new Response(stream, {
+              headers: responseHeaders,
+              status: responseStatusCode,
+            })
+          );
+
+          pipe(body);
+        },
+        onShellError(error) {
+          reject(error);
+        },
+        onError(error) {
+          responseStatusCode = 500;
+          // Log streaming rendering errors from inside the shell.
+          if (shellRendered) {
+            console.error(error);
+          }
+        },
       }
-    } catch (error) {
-      // Ignora erros de parsing JSON
-    }
-  }
+    );
 
-  let markup = renderToString(
-    <RemixServer context={remixContext} url={request.url} />
-  );
-
-  responseHeaders.set("Content-Type", "text/html");
-
-  return new Response("<!DOCTYPE html>" + markup, {
-    status: responseStatusCode,
-    headers: responseHeaders,
+    setTimeout(abort, ABORT_DELAY);
   });
 }
 
-export function handleError(error, { request }) {
-  // Log detalhado do erro para fins de depuração no servidor
-  console.error("Erro não tratado no servidor:", {
-    message: error.message,
-    stack: error.stack,
-    url: request?.url,
-    method: request?.method,
+function handleBrowserRequest(
+  request,
+  responseStatusCode,
+  responseHeaders,
+  remixContext
+) {
+  return new Promise((resolve, reject) => {
+    let shellRendered = false;
+    const { pipe, abort } = renderToPipeableStream(
+      <RemixServer
+        context={remixContext}
+        url={request.url}
+        abortDelay={ABORT_DELAY}
+      />,
+      {
+        onShellReady() {
+          shellRendered = true;
+          const body = new PassThrough();
+          const stream = createReadableStreamFromReadable(body);
+
+          responseHeaders.set("Content-Type", "text/html");
+
+          resolve(
+            new Response(stream, {
+              headers: responseHeaders,
+              status: responseStatusCode,
+            })
+          );
+
+          pipe(body);
+        },
+        onShellError(error) {
+          reject(error);
+        },
+        onError(error) {
+          responseStatusCode = 500;
+          // Log streaming rendering errors from inside the shell.
+          if (shellRendered) {
+            console.error(error);
+          }
+        },
+      }
+    );
+
+    setTimeout(abort, ABORT_DELAY);
   });
-
-  // Se for um erro de rota do Remix, adicione informações adicionais
-  if (isRouteErrorResponse(error)) {
-    console.error("Detalhes do erro de rota:", {
-      data: error.data,
-      status: error.status,
-      statusText: error.statusText,
-    });
-  }
-
-  // Você pode integrar com serviços de monitoramento de erros aqui
-  // como Sentry, LogRocket, etc.
-
-  return error;
 }
-
-// Configuração para Vercel
-export const config = {
-  runtime: "nodejs",
-};

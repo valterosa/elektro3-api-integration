@@ -20,9 +20,10 @@ import {
 import {
   useLoaderData,
   useSubmit,
-  useNavigation,
+  useNavigation as useRemixNavigation,
   useActionData,
 } from "@remix-run/react";
+import { useNavigate } from "../../utils/navigation-helper";
 import { json } from "@remix-run/node";
 import { authenticate } from "../../shopify.server";
 import {
@@ -157,7 +158,8 @@ export default function Elektro3Importer() {
   const [isImportingProducts, setIsImportingProducts] = useState(false);
   const [importResults, setImportResults] = useState(null);
   const submit = useSubmit();
-  const navigation = useNavigation();
+  const navigate = useNavigate();
+  const navigation = useRemixNavigation();
   const isLoading =
     navigation.state === "loading" || navigation.state === "submitting";
 
@@ -388,10 +390,7 @@ export default function Elektro3Importer() {
                 .filter((r) => r.status === "error")
                 .map((result) => (
                   <li key={result.elektro3Id}>
-                    {result.elektro3Id}:{" "}
-                    {typeof result.error === "object"
-                      ? JSON.stringify(result.error)
-                      : result.error}
+                    {result.elektro3Id}: {result.error}
                   </li>
                 ))}
             </ul>

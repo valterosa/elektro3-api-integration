@@ -9,8 +9,11 @@ import {
   BlockStack,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
+import { useNavigate } from "../utils/navigation-helper";
 
 export default function AdditionalPage() {
+  const navigate = useNavigate();
+
   return (
     <Page>
       <TitleBar title="Additional page" />

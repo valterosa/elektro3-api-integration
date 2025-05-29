@@ -11,6 +11,14 @@
     "dev:express": "NODE_ENV=development node express-server.js",
     "dev:win": "set NODE_ENV=development&& node server.mjs",
     "dev:shopify": "shopify app dev",
+    "dev:otimizado": "node local-server.js",
+    "dev:build-serve": "node build-serve.js",
+    "dev:https": "node https-local-server.js",
+    "dev:tunnel": "node tunnel-server.js",
+    "dev:remix": "remix vite:dev",
+    "dev:opt": "node optimized-dev-server.js",
+    "tunnel": "node https-tunnel.js",
+    "bypass-tunnel": "node bypass-tunnel.js",
     "start": "NODE_ENV=production node server.mjs",
     "start:win": "set NODE_ENV=production&& node server.mjs",
     "shopify:link": "shopify app config link",
@@ -69,8 +77,11 @@
     "@types/react-dom": "^18.2.14",
     "eslint": "^8.42.0",
     "eslint-config-prettier": "^10.0.1",
+    "http-proxy-middleware": "3.0.5",
+    "open": "10.1.2",
     "prettier": "^3.2.4",
-    "rimraf": "^5.0.5"
+    "rimraf": "^5.0.5",
+    "selfsigned": "2.4.1"
   },
   "workspaces": [
     "extensions/*"

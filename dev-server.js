@@ -25,7 +25,7 @@ const BUILD_PATH = path.resolve(__dirname, "build/server/index.js");
 async function startServer() {
   console.log("🚀 Iniciando servidor de desenvolvimento local...");
 
-  // Criar o servidor Vite
+  // Criar o servidor Vite com configurações atualizadas
   const vite = await createServer({
     server: {
       middlewareMode: true,
@@ -35,6 +35,19 @@ async function startServer() {
       },
     },
     appType: "custom",
+    // Adicionando configuração para garantir que o build do Remix funcione
+    optimizeDeps: {
+      entries: [
+        "app/**/*.{js,jsx,ts,tsx}",
+      ],
+      force: true
+    },
+    // Adicionado para resolver problemas com o Remix 2.x
+    resolve: {
+      alias: {
+        "@remix-run/dev/server-build": path.resolve(__dirname, "./build/server/index.js")
+      }
+    }
   });
 
   const app = express();
@@ -51,11 +64,27 @@ async function startServer() {
     next();
   });
 
-  // Configurar o handler do Remix
+  // Configurar o handler do Remix com abordagem alternativa
   app.all(
     "*",
     createRequestHandler({
-      build: () => vite.ssrLoadModule("virtual:remix/server-build"),
+      // Abordagem atualizada para o Remix 2.x
+      build: async (request) => {
+        try {
+          // Primeiro tentar carregar pelo módulo virtual
+          return await vite.ssrLoadModule("virtual:remix/server-build");
+        } catch (e) {
+          console.warn("Erro ao carregar módulo virtual, tentando abordagem alternativa:", e.message);
+          
+          // Abordagem alternativa - criar o build pela primeira vez
+          try {
+            return await vite.ssrLoadModule("./build/server/index.js");
+          } catch (e2) {
+            console.error("Falha ao carregar o build:", e2);
+            throw e2;
+          }
+        }
+      },
       mode: "development",
       getLoadContext(req, res) {
         return {

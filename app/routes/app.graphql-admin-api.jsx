@@ -1,6 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
 import { json } from "@remix-run/node";
-import { useActionData, useNavigation, useSubmit } from "@remix-run/react";
+import {
+  useActionData,
+  useNavigation as useRemixNavigation,
+  useSubmit,
+} from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -18,7 +22,8 @@ import {
   Badge,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import shopifyAdminClient from "../lib/shopify-admin-client";
+import { useNavigate } from "../utils/navigation-helper";
+import { shopifyAdminClient } from "../lib/shopify-admin-client";
 import {
   createWebhookSubscription,
   listWebhooks,
@@ -116,7 +121,8 @@ export async function action({ request }) {
 
 export default function GraphqlAdminApiDemo() {
   const actionData = useActionData();
-  const navigation = useNavigation();
+  const navigation = useRemixNavigation();
+  const navigate = useNavigate();
   const submit = useSubmit();
   const isLoading = navigation.state === "submitting";
 

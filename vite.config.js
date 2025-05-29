@@ -23,11 +23,18 @@ export default defineConfig({
       "~": resolve(__dirname, "app"),
     },
   },
-
   // Configurações de servidor de desenvolvimento
   server: {
     port: parseInt(process.env.PORT || "3000"),
     strictPort: false, // Permite que o Vite use outra porta se a principal estiver ocupada
+    host: true, // Permite conexões externas
+    allowedHosts: [
+      "localhost",
+      "127.0.0.1",
+      "protocol-point-cloud-contacting.trycloudflare.com",
+      ".trycloudflare.com", // Permite qualquer subdomínio do cloudflare
+      ".ngrok.io", // Para caso use ngrok também
+    ],
     hmr: {
       // Configuração para evitar conflito de porta
       clientPort: "auto", // Usar detecção automática

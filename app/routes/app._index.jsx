@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useFetcher, useNavigate } from "@remix-run/react";
+import { useFetcher } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -14,7 +14,8 @@ import {
 } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { json } from "@remix-run/node";
-import shopifyAdminClient from "../lib/shopify-admin-client";
+import { shopifyAdminClient } from "../lib/shopify-admin-client";
+import { useNavigate } from "../utils/navigation-helper";
 
 export const loader = async ({ request }) => {
   return null;

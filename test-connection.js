@@ -3,9 +3,16 @@
  * Útil para validar as credenciais e a conectividade antes de executar a aplicação completa
  */
 
+// Carregar as variáveis de ambiente do arquivo .env
+import dotenv from "dotenv";
+dotenv.config();
+
 import { testConnections } from "./app/lib/elektro3-api.server.js";
-import { directAdminClient } from "./app/lib/shopify-admin-client.js";
+import { createShopifyAdminClient } from "./app/lib/shopify-admin-client.js";
 import { ELEKTRO3_CONFIG, SHOPIFY_CONFIG } from "./app/config.js";
+
+// Instanciar o cliente Shopify Admin
+const directAdminClient = createShopifyAdminClient();
 
 console.log("🔍 Iniciando teste de conexão com as APIs...\n");
 

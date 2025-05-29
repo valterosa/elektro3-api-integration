@@ -3,8 +3,8 @@ import {
   Form,
   useActionData,
   useLoaderData,
-  useRouteError,
   isRouteErrorResponse,
+  useRouteError,
 } from "@remix-run/react";
 import {
   AppProvider as PolarisAppProvider,
@@ -18,135 +18,60 @@ import {
 } from "@shopify/polaris";
 import polarisTranslations from "@shopify/polaris/locales/en.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
-import { json } from "@remix-run/node";
 import { login } from "../../shopify.server";
-import { OAuthRedirect } from "../../components/OAuthRedirect";
+import { loginErrorMessage } from "./error.server";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
-// Manipula o carregamento da página de login
 export const loader = async ({ request }) => {
-  // Verificando se há parâmetros de consulta na URL
-  const url = new URL(request.url);
-  const shop = url.searchParams.get("shop");
+  const errors = loginErrorMessage(await login(request));
 
-  // Log para depuração
-  console.log("Login loader - shop parameter:", shop);
-
-  // Se shop estiver na URL, tenta fazer login diretamente
-  if (shop) {
-    try {
-      const response = await login(request);
-      console.log("Login response type:", typeof response);
-
-      if (response instanceof Response && response.status === 302) {
-        const redirectUrl = response.headers.get("Location");
-        console.log("Login redirecting to:", redirectUrl);
-
-        // Em vez de retornar um redirecionamento 302, retorna os dados para renderização
-        return json({
-          polarisTranslations: {},
-          redirectUrl,
-          shop,
-        });
-      }
-    } catch (error) {
-      console.error("Erro ao processar login automático:", error);
-      if (error instanceof Response && error.status === 302) {
-        const redirectUrl = error.headers.get("Location");
-        return json({
-          polarisTranslations: {},
-          redirectUrl,
-          shop,
-        });
-      }
-    }
-  }
-
-  // Retorna os dados necessários para renderizar a página
-  return json({
-    polarisTranslations: {},
-    shop: shop || "",
-  });
+  return { errors, polarisTranslations };
 };
 
-// Manipula a submissão do formulário de login
 export const action = async ({ request }) => {
-  try {
-    // Tenta realizar o login quando o formulário é submetido
-    const formData = await request.formData();
-    const shop = formData.get("shop");
+  const errors = loginErrorMessage(await login(request));
 
-    const response = await login(request);
-
-    // Log para depuração
-    console.log("Login action response type:", typeof response);
-
-    // Se for um redirecionamento, retorna dados para renderizar o componente OAuthRedirect
-    if (response instanceof Response && response.status === 302) {
-      const redirectUrl = response.headers.get("Location");
-      console.log("Login action redirecting to:", redirectUrl);
-
-      return json({
-        redirectUrl,
-        shop,
-      });
-    }
-
-    // Retorna os erros formatados
-    return json({
-      errors: {
-        shop: response.shop || null,
-        general:
-          "Ocorreu um erro durante o login. Verifique o nome da loja e tente novamente.",
-      },
-    });
-  } catch (error) {
-    console.error("Erro na action de login:", error);
-
-    // Se o erro for um redirecionamento, envie os dados para o cliente
-    if (error instanceof Response && error.status === 302) {
-      const redirectUrl = error.headers.get("Location");
-      return json({
-        redirectUrl,
-      });
-    }
-
-    // Retorna um erro genérico para outros problemas
-    return json(
-      {
-        errors: {
-          general: "Ocorreu um erro inesperado. Por favor, tente novamente.",
-        },
-      },
-      { status: 500 }
-    );
-  }
+  return {
+    errors,
+  };
 };
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+
+  return (
+    <PolarisAppProvider i18n={polarisTranslations}>
+      <Page>
+        <Card>
+          <Banner title="Erro" status="critical">
+            <p>
+              {isRouteErrorResponse(error)
+                ? `${error.status} ${error.statusText}`
+                : error instanceof Error
+                  ? error.message
+                  : "Ocorreu um erro desconhecido durante o login. Por favor, tente novamente."}
+            </p>
+          </Banner>
+          <div style={{ marginTop: "1rem" }}>
+            <Button url="/auth/login">Tentar novamente</Button>
+          </div>
+        </Card>
+      </Page>
+    </PolarisAppProvider>
+  );
+}
 
 export default function Auth() {
   const loaderData = useLoaderData();
   const actionData = useActionData();
-  const [shop, setShop] = useState(loaderData.shop || "");
-
-  // Unifica os dados do loader e da action
-  const data = { ...loaderData, ...actionData };
-  const { errors, redirectUrl } = data;
-
-  // Se houver uma URL de redirecionamento, renderiza o componente OAuthRedirect
-  if (redirectUrl) {
-    return <OAuthRedirect redirectUrl={redirectUrl} />;
-  }
+  const [shop, setShop] = useState("");
+  const { errors } = actionData || loaderData;
 
   return (
     <PolarisAppProvider i18n={loaderData.polarisTranslations}>
       <Page>
         <Card>
-          {errors && errors.general && (
-            <Banner status="critical" title="Erro">
-              {errors.general}
-            </Banner>
-          )}
           <Form method="post">
             <FormLayout>
               <Text variant="headingMd" as="h2">
@@ -160,65 +85,11 @@ export default function Auth() {
                 value={shop}
                 onChange={setShop}
                 autoComplete="on"
-                error={errors?.shop}
+                error={errors.shop}
               />
               <Button submit>Log in</Button>
             </FormLayout>
           </Form>
-        </Card>
-      </Page>
-    </PolarisAppProvider>
-  );
-}
-
-export function ErrorBoundary() {
-  const error = useRouteError();
-  let errorMessage = "Ocorreu um erro inesperado.";
-  let errorDetails = "";
-
-  // Verifica se é um erro de resposta de rota
-  if (isRouteErrorResponse(error)) {
-    errorMessage = `Erro ${error.status}`;
-
-    try {
-      // Tenta extrair dados JSON da resposta de erro
-      const data = JSON.parse(error.data);
-      if (data.message) {
-        errorDetails = data.message;
-      }
-    } catch (e) {
-      // Se não for JSON, usa o texto bruto
-      errorDetails =
-        typeof error.data === "string"
-          ? error.data
-          : "Erro durante o processamento";
-    }
-  } else if (error instanceof Error) {
-    errorMessage = error.message;
-    // Em desenvolvimento, podemos mostrar mais detalhes do erro
-    if (process.env.NODE_ENV === "development") {
-      errorDetails = typeof error.stack === "string" ? error.stack : "";
-    }
-  } else if (error && typeof error === "object") {
-    // Caso seja um objeto, converter para string
-    errorMessage = "Erro de aplicação";
-    errorDetails = JSON.stringify(error);
-  }
-
-  // Renderiza um componente Polaris com a mensagem de erro
-  return (
-    <PolarisAppProvider i18n={polarisTranslations}>
-      <Page>
-        <Card>
-          <FormLayout>
-            <Banner status="critical" title={errorMessage}>
-              {errorDetails ||
-                "Houve um problema ao processar sua solicitação. Por favor, tente novamente mais tarde."}
-            </Banner>
-            <div style={{ textAlign: "center", margin: "20px 0" }}>
-              <Button url="/auth/login">Tentar novamente</Button>
-            </div>
-          </FormLayout>
         </Card>
       </Page>
     </PolarisAppProvider>

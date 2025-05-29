@@ -18,8 +18,9 @@ import {
   useLoaderData,
   useSubmit,
   useActionData,
-  useNavigation,
+  useNavigation as useRemixNavigation,
 } from "@remix-run/react";
+import { useNavigate } from "../utils/navigation-helper";
 import { authenticate } from "../shopify.server";
 import {
   fetchProductsFromElektro3API,
@@ -115,12 +116,9 @@ export const action = async ({ request }) => {
       }
     } else if (action === "test-elektro3-products") {
       try {
-        const response = await fetchProductsFromElektro3API({
+        const { products, categories } = await fetchProductsFromElektro3API({
           limit: 5,
         });
-
-        const products = response.products || [];
-        const categories = [];
 
         return json({
           action: "test-elektro3-products",
@@ -161,7 +159,8 @@ export default function ConnectionTest() {
   const loaderData = useLoaderData();
   const actionData = useActionData();
   const submit = useSubmit();
-  const navigation = useNavigation();
+  const navigate = useNavigate();
+  const navigation = useRemixNavigation();
   const isLoading = navigation.state === "submitting";
 
   const [elektro3TestResult, setElektro3TestResult] = useState(null);
@@ -239,38 +238,34 @@ export default function ConnectionTest() {
         {result.details && (
           <TextContainer>
             <p>
-              <strong>Detalhes do erro:</strong>{" "}
-              {typeof result.details === "object"
-                ? JSON.stringify(result.details)
-                : result.details}
+              <strong>Detalhes do erro:</strong> {result.details}
             </p>
 
-            {typeof result.details === "string" &&
-              result.details.includes("Not Found") && (
-                <Box paddingBlockStart="4">
-                  <Text variant="bodySm" as="p" color="subdued">
-                    <span style={{ marginLeft: "8px" }}>
-                      O erro "Not Found" geralmente indica que a URL da API está
-                      incorreta ou o endpoint de autenticação não é o esperado.
-                      Verifique:
-                    </span>
-                  </Text>
-                  <ul>
-                    <li>
-                      Se a URL da API está correta (atualmente:{" "}
-                      {loaderData.elektro3ApiUrl})
-                    </li>
-                    <li>
-                      Se o endpoint de autenticação é realmente "/auth" ou se
-                      deveria ser outro caminho
-                    </li>
-                    <li>
-                      Se a API está acessível a partir do servidor onde esta
-                      aplicação está hospedada
-                    </li>
-                  </ul>
-                </Box>
-              )}
+            {result.details.includes("Not Found") && (
+              <Box paddingBlockStart="4">
+                <Text variant="bodySm" as="p" color="subdued">
+                  <span style={{ marginLeft: "8px" }}>
+                    O erro "Not Found" geralmente indica que a URL da API está
+                    incorreta ou o endpoint de autenticação não é o esperado.
+                    Verifique:
+                  </span>
+                </Text>
+                <ul>
+                  <li>
+                    Se a URL da API está correta (atualmente:{" "}
+                    {loaderData.elektro3ApiUrl})
+                  </li>
+                  <li>
+                    Se o endpoint de autenticação é realmente "/auth" ou se
+                    deveria ser outro caminho
+                  </li>
+                  <li>
+                    Se a API está acessível a partir do servidor onde esta
+                    aplicação está hospedada
+                  </li>
+                </ul>
+              </Box>
+            )}
           </TextContainer>
         )}
         {result.shopName && <p>Shop name: {result.shopName}</p>}

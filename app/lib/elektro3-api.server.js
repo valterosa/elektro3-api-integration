@@ -4,50 +4,29 @@
  * e importá-los para o Shopify
  */
 
-import {
-  ELEKTRO3_CONFIG,
-  SHOPIFY_CONFIG,
-  checkRequiredConfig,
-} from "../config";
+import { ELEKTRO3_CONFIG, SHOPIFY_CONFIG } from "../config.js";
 
-// Verificar se todas as configurações necessárias estão presentes
-const configStatus = checkRequiredConfig();
-if (!configStatus.allConfigPresent) {
-  console.warn("⚠️ Algumas configurações estão faltando:");
-  if (configStatus.missing.elektro3.length > 0) {
-    console.warn("Elektro3:", configStatus.missing.elektro3.join(", "));
-  }
-  if (configStatus.missing.shopify.length > 0) {
-    console.warn("Shopify:", configStatus.missing.shopify.join(", "));
-  }
-}
+// Configurações da API Elektro3
+const ELEKTRO3_API_URL = ELEKTRO3_CONFIG.API_URL;
+const ELEKTRO3_CLIENT_ID = ELEKTRO3_CONFIG.CLIENT_ID;
+const ELEKTRO3_SECRET_KEY = ELEKTRO3_CONFIG.SECRET_KEY;
+const ELEKTRO3_USERNAME = ELEKTRO3_CONFIG.USERNAME;
+const ELEKTRO3_PASSWORD = ELEKTRO3_CONFIG.PASSWORD;
+
+// Configurações do Shopify
+const SHOPIFY_SHOP = SHOPIFY_CONFIG.SHOP;
+const SHOPIFY_ADMIN_API_ACCESS_TOKEN = SHOPIFY_CONFIG.ADMIN_API_ACCESS_TOKEN;
 
 // Logs para depuração
-console.log("Elektro3 API URL:", ELEKTRO3_CONFIG.API_URL);
+console.log("Elektro3 API URL:", ELEKTRO3_API_URL);
 console.log("Elektro3 credentials configured:", {
-  hasClientId: !!ELEKTRO3_CONFIG.CLIENT_ID,
-  hasSecretKey: !!ELEKTRO3_CONFIG.SECRET_KEY,
-  hasUsername: !!ELEKTRO3_CONFIG.USERNAME,
-  hasPassword: !!ELEKTRO3_CONFIG.PASSWORD,
+  hasClientId: !!ELEKTRO3_CLIENT_ID,
+  hasSecretKey: !!ELEKTRO3_SECRET_KEY,
+  hasUsername: !!ELEKTRO3_USERNAME,
+  hasPassword: !!ELEKTRO3_PASSWORD,
 });
 
-/**
- * Auxiliar para garantir que mensagens de erro sejam sempre strings
- * @param {any} error Objeto ou string de erro
- * @returns {string} Mensagem de erro como string
- */
-function sanitizeErrorMessage(error) {
-  if (typeof error === "string") return error;
-  if (error instanceof Error) return error.message;
-  if (typeof error === "object" && error !== null) {
-    try {
-      return JSON.stringify(error);
-    } catch (e) {
-      return "Erro não especificado (objeto não serializável)";
-    }
-  }
-  return String(error || "Erro desconhecido");
-}
+import axios from "axios";
 
 /**
  * Autenticar na API da Elektro3 (formato atualizado)
@@ -57,10 +36,10 @@ export async function authenticate() {
   try {
     // Verificar se todas as credenciais estão configuradas
     if (
-      !ELEKTRO3_CONFIG.CLIENT_ID ||
-      !ELEKTRO3_CONFIG.SECRET_KEY ||
-      !ELEKTRO3_CONFIG.USERNAME ||
-      !ELEKTRO3_CONFIG.PASSWORD
+      !ELEKTRO3_CLIENT_ID ||
+      !ELEKTRO3_SECRET_KEY ||
+      !ELEKTRO3_USERNAME ||
+      !ELEKTRO3_PASSWORD
     ) {
       throw new Error(
         "Missing Elektro3 API credentials. Please check your environment variables."
@@ -72,14 +51,14 @@ export async function authenticate() {
     // Formato correto conforme documentação (usando grant_type)
     const authPayload = {
       grant_type: "password",
-      client_id: ELEKTRO3_CONFIG.CLIENT_ID,
-      client_secret: ELEKTRO3_CONFIG.SECRET_KEY,
-      username: ELEKTRO3_CONFIG.USERNAME,
-      password: ELEKTRO3_CONFIG.PASSWORD,
+      client_id: ELEKTRO3_CLIENT_ID,
+      client_secret: ELEKTRO3_SECRET_KEY,
+      username: ELEKTRO3_USERNAME,
+      password: ELEKTRO3_PASSWORD,
     };
 
     // Fazer a solicitação de autenticação para o endpoint correto
-    const response = await fetch(`${ELEKTRO3_CONFIG.API_URL}/oauth/token`, {
+    const response = await fetch(`${ELEKTRO3_API_URL}/oauth/token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -110,9 +89,7 @@ export async function authenticate() {
     return accessToken;
   } catch (error) {
     console.error("Erro ao autenticar na API Elektro3:", error);
-    // Garantir que o erro lançado tenha uma mensagem como string
-    const errorMessage = sanitizeErrorMessage(error);
-    throw new Error(errorMessage);
+    throw error;
   }
 }
 
@@ -147,18 +124,15 @@ export async function fetchProductsFromElektro3API(options = {}) {
       }
     }
 
-    const response = await fetch(
-      `${ELEKTRO3_CONFIG.API_URL}/api/get-productos`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(payload),
-      }
-    );
+    const response = await fetch(`${ELEKTRO3_API_URL}/api/get-productos`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
 
     const status = response.status;
     console.log("Status da resposta de busca de produtos:", status);
@@ -242,7 +216,7 @@ export async function fetchProductDetails(productCode) {
     // Tentar usar o endpoint GET específico se disponível
     try {
       const response = await fetch(
-        `${ELEKTRO3_CONFIG.API_URL}/api/get-producto/${productCode}`,
+        `${ELEKTRO3_API_URL}/api/get-producto/${productCode}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -354,17 +328,17 @@ export async function importProductsToShopify(products) {
       // Criar produto no Shopify via API REST
       console.log(`Enviando para Shopify: ${nombre}`);
 
-      if (!SHOPIFY_CONFIG.SHOP || !SHOPIFY_CONFIG.ADMIN_API_ACCESS_TOKEN) {
+      if (!SHOPIFY_SHOP || !SHOPIFY_ADMIN_API_ACCESS_TOKEN) {
         throw new Error("Credenciais do Shopify não configuradas");
       }
 
       const shopifyResponse = await fetch(
-        `https://${SHOPIFY_CONFIG.SHOP}/admin/api/${SHOPIFY_CONFIG.API_VERSION}/products.json`,
+        `https://${SHOPIFY_SHOP}/admin/api/2023-04/products.json`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-Shopify-Access-Token": SHOPIFY_CONFIG.ADMIN_API_ACCESS_TOKEN,
+            "X-Shopify-Access-Token": SHOPIFY_ADMIN_API_ACCESS_TOKEN,
           },
           body: JSON.stringify({ product: shopifyProduct }),
         }
@@ -413,17 +387,14 @@ export async function fetchCategories() {
 
     // Tentar o endpoint específico para categorias
     try {
-      const response = await fetch(
-        `${ELEKTRO3_CONFIG.API_URL}/api/get-categorias`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({}),
-        }
-      );
+      const response = await fetch(`${ELEKTRO3_API_URL}/api/get-categorias`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -444,7 +415,7 @@ export async function fetchCategories() {
     }
 
     // Se o endpoint principal falhar, tentar endpoint alternativo
-    const response = await fetch(`${ELEKTRO3_CONFIG.API_URL}/categories`, {
+    const response = await fetch(`${ELEKTRO3_API_URL}/categories`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -486,15 +457,15 @@ export async function testConnections() {
 
   // Testar conexão com Shopify
   try {
-    if (!SHOPIFY_CONFIG.SHOP || !SHOPIFY_CONFIG.ADMIN_API_ACCESS_TOKEN) {
+    if (!SHOPIFY_SHOP || !SHOPIFY_ADMIN_API_ACCESS_TOKEN) {
       throw new Error("Credenciais do Shopify não configuradas");
     }
 
     const shopResponse = await fetch(
-      `https://${SHOPIFY_CONFIG.SHOP}/admin/api/${SHOPIFY_CONFIG.API_VERSION}/shop.json`,
+      `https://${SHOPIFY_SHOP}/admin/api/2023-04/shop.json`,
       {
         headers: {
-          "X-Shopify-Access-Token": SHOPIFY_CONFIG.ADMIN_API_ACCESS_TOKEN,
+          "X-Shopify-Access-Token": SHOPIFY_ADMIN_API_ACCESS_TOKEN,
         },
       }
     );

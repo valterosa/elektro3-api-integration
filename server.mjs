@@ -187,30 +187,35 @@ async function startServer() {
       optimizeDeps: {
         force: true,
       },
-    });
-
-    // Usar middleware do Vite
+    }); // Usar middleware do Vite
     app.use(viteDevServer.middlewares);
-
-    // Configurar build para usar SSR do Vite
-    build = () => viteDevServer.ssrLoadModule("virtual:remix/server-build");
   }
-
   // Configurar handler de requisições do Remix
-  app.all(
-    "*",
-    createRequestHandler({
-      build,
-      mode: MODE,
-      getLoadContext(req, res) {
-        return {
-          env: process.env,
-          req,
-          res,
-        };
-      },
-    })
-  );
+  app.all("*", async (req, res, next) => {
+    try {
+      // Em desenvolvimento, carregar o build dinamicamente para cada requisição
+      const currentBuild = isProduction
+        ? build
+        : await viteDevServer.ssrLoadModule("virtual:remix/server-build");
+
+      const handler = createRequestHandler({
+        build: currentBuild,
+        mode: MODE,
+        getLoadContext(req, res) {
+          return {
+            env: process.env,
+            req,
+            res,
+          };
+        },
+      });
+
+      return handler(req, res, next);
+    } catch (error) {
+      console.error("Erro no handler do Remix:", error);
+      next(error);
+    }
+  });
 
   // Iniciar servidor
   app.listen(PORT, () => {

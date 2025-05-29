@@ -3,6 +3,22 @@
  * Este arquivo facilita a manutenção das configurações em um único local
  */
 
+import dotenv from "dotenv";
+
+// Carregar variáveis de ambiente
+dotenv.config();
+
+// Debug: Mostrar variáveis de ambiente
+console.log(
+  "DEBUG config.js - ELEKTRO3_API_URL:",
+  process.env.ELEKTRO3_API_URL
+);
+console.log(
+  "DEBUG config.js - ELEKTRO3_CLIENT_ID:",
+  process.env.ELEKTRO3_CLIENT_ID
+);
+console.log("DEBUG config.js - SHOPIFY_SHOP:", process.env.SHOPIFY_SHOP);
+
 // Configurações da API Elektro3
 export const ELEKTRO3_CONFIG = {
   API_URL: process.env.ELEKTRO3_API_URL || "https://api.elektro3.com",
