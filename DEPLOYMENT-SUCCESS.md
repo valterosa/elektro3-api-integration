@@ -2,6 +2,11 @@
 
 ## ✅ Status Final - 29 de Maio de 2025
 
+### 🔧 **ATUALIZAÇÃO**: Corrigido Redirecionamento para Vercel
+- **Problema**: App ainda redirecionava para ngrok/cloudflare
+- **Correção**: Atualizado `vite.config.js` com URLs do Vercel
+- **Status**: ✅ **RESOLVIDO** - App agora aponta para Vercel
+
 ### 🚀 Aplicação Deployada
 
 - **URL de Produção**: https://elektro3-api-integration-3rtt7qtzr-electro-malho.vercel.app
