@@ -44,13 +44,14 @@ export default defineConfig({
       overlay: true, // Mostrar overlay em caso de erros
     },
   },
-
   // Configurações específicas para build do servidor
   ssr: {
     noExternal: [
       // Pacotes que precisam ser incluídos no bundle do servidor
       "@shopify/shopify-app-remix",
       "@shopify/polaris",
+      "@shopify/app-bridge-react",
+      "@shopify/app-bridge",
       /^@shopify\/app-bridge.*$/,
       // Adicionar quaisquer outros que causem problemas
     ],
@@ -58,10 +59,25 @@ export default defineConfig({
     format: "esm",
   },
 
+  // Configurações de build
+  build: {
+    rollupOptions: {
+      external: [
+        // Não externalizar app-bridge para o cliente
+      ],
+    },
+  },
   // Configuração de otimização
   optimizeDeps: {
     // Forçar a inclusão de todos os módulos compatíveis
-    include: ["react", "react-dom", "@shopify/polaris", "isbot"],
+    include: [
+      "react",
+      "react-dom",
+      "@shopify/polaris",
+      "@shopify/app-bridge-react",
+      "@shopify/app-bridge",
+      "isbot",
+    ],
   },
 
   // Plugins

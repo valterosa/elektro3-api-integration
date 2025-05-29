@@ -108,16 +108,18 @@ Para implantar esta aplicação no Vercel e garantir que esteja sempre disponív
 ### Passos para Implantação
 
 1. **Prepare o Ambiente**:
+
    ```bash
    # Clone o repositório (se ainda não tiver feito)
    git clone <seu-repositório>
    cd elektro3-api-integration
-   
+
    # Instale as dependências
    npm install
    ```
 
 2. **Configure as Variáveis de Ambiente no Vercel**:
+
    - Copie as variáveis de `.env.production` para as configurações do seu projeto no Vercel
    - Certifique-se de substituir com seus valores reais:
      - `SHOPIFY_API_KEY`
@@ -130,15 +132,16 @@ Para implantar esta aplicação no Vercel e garantir que esteja sempre disponív
      - `DATABASE_URL` (Se estiver usando um banco de dados externo)
 
 3. **Implante no Vercel**:
+
    ```bash
    # Faça commit das alterações
    git add .
    git commit -m "Configurado para deploy no Vercel"
    git push
-   
+
    # Opção 1: Use a interface do Vercel para importar o projeto
    # Vá para vercel.com, importe o repositório, e configure as variáveis de ambiente
-   
+
    # Opção 2: Use a CLI do Vercel (se preferir)
    npm install -g vercel
    vercel login
@@ -146,6 +149,7 @@ Para implantar esta aplicação no Vercel e garantir que esteja sempre disponív
    ```
 
 4. **Configure a URL no Shopify**:
+
    - Acesse o [Portal de Parceiros Shopify](https://partners.shopify.com)
    - Acesse seu app e atualize a URL para o endereço do Vercel
    - Atualize as URLs de redirecionamento OAuth para incluir seu domínio Vercel

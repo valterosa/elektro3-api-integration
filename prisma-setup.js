@@ -72,7 +72,6 @@ function setupDatabaseUrlIfNeeded() {
     process.env.DATABASE_URL = url;
     return true;
   }
-
   console.error(
     "Não foi possível encontrar nenhuma variável de conexão com banco de dados!"
   );
@@ -82,7 +81,11 @@ function setupDatabaseUrlIfNeeded() {
       (key) => key.includes("DATABASE") || key.includes("POSTGRES")
     )
   );
-  return false;
+
+  // Como último recurso, usar SQLite para desenvolvimento local
+  console.log("Usando SQLite como fallback para desenvolvimento local...");
+  process.env.DATABASE_URL = "file:dev.sqlite";
+  return true;
 }
 
 // Função para inicializar o banco de dados

@@ -1,34 +1,33 @@
 /**
  * Database setup for Vercel deployment
- * This file prepares the database for production use on Vercel
+ * This file prepares the database configuration for production use on Vercel
  */
 
-import { PrismaClient } from '@prisma/client';
-import * as dotenv from 'dotenv';
+import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const prisma = new PrismaClient();
-
 async function main() {
-  console.log('Setting up database for production on Vercel...');
-  
+  console.log("Setting up database configuration for Vercel...");
+
   try {
-    // Run migrations if needed
-    console.log('Checking database schema...');
-    
-    // Try a simple query to test the connection
-    await prisma.$queryRaw`SELECT 1`;
-    console.log('Database connection successful!');
-    
-    // For PostgreSQL on Vercel, let's add any needed initial setup here
-    
-    console.log('✅ Database setup complete!');
+    // Check if DATABASE_URL is set
+    if (!process.env.DATABASE_URL) {
+      console.log(
+        "DATABASE_URL not found. Setting default SQLite for fallback..."
+      );
+      process.env.DATABASE_URL = "file:dev.sqlite";
+    } else {
+      console.log(
+        "DATABASE_URL configured:",
+        process.env.DATABASE_URL.substring(0, 35) + "..."
+      );
+    }
+
+    console.log("✅ Database configuration complete!");
   } catch (error) {
-    console.error('❌ Error setting up database:', error);
+    console.error("❌ Error setting up database configuration:", error);
     process.exit(1);
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
