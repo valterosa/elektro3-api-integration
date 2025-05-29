@@ -1,10 +1,10 @@
+# Temporary configuration file for CLI updates
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-# Configuration for Vercel deployment - PRODUCTION
 client_id = "876289cfbb8474b45386415b86fa5be4"
 name = "elektro3-api-integration"
 handle = "elektro3-api-integration"
-application_url = "https://elektro3-api-integration-30q9w2qvf-electro-malho.vercel.app"
+application_url = "https://elektro3-api-integration-3rtt7qtzr-electro-malho.vercel.app"
 embedded = true
 
 [build]
@@ -20,9 +20,9 @@ scopes = "write_products,read_products,write_customers,read_customers,write_orde
 
 [auth]
 redirect_urls = [
-  "https://elektro3-api-integration-30q9w2qvf-electro-malho.vercel.app/auth/callback",
-  "https://elektro3-api-integration-30q9w2qvf-electro-malho.vercel.app/auth/shopify/callback",
-  "https://elektro3-api-integration-30q9w2qvf-electro-malho.vercel.app/api/auth/callback"
+  "https://elektro3-api-integration-3rtt7qtzr-electro-malho.vercel.app/auth/callback",
+  "https://elektro3-api-integration-3rtt7qtzr-electro-malho.vercel.app/auth/shopify/callback",
+  "https://elektro3-api-integration-3rtt7qtzr-electro-malho.vercel.app/api/auth/callback"
 ]
 
 [pos]

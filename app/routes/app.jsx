@@ -5,7 +5,6 @@ import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import { json } from "@remix-run/node";
 import { shopifyAdminClient } from "../lib/shopify-admin-client";
-import { Redirect } from "@shopify/app-bridge/actions";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 

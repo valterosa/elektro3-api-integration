@@ -2,7 +2,6 @@
 import { useNavigate as useRemixNavigate } from "@remix-run/react";
 import { useCallback } from "react";
 import { useAppBridge } from "@shopify/app-bridge-react";
-import { Redirect } from "@shopify/app-bridge/actions";
 
 /**
  * Custom navigation hook for Shopify embedded apps
@@ -16,7 +15,11 @@ export function useNavigate() {
     (to, options = {}) => {
       if (appBridge) {
         // Use App Bridge navigation for embedded app context
-        Redirect.create(appBridge).dispatch(Redirect.Action.APP, to);
+        // Using the app bridge dispatch method directly
+        appBridge.dispatch({
+          type: "APP::NAVIGATE",
+          payload: { path: to },
+        });
       } else {
         // Fall back to Remix navigation outside of embedded context
         remixNavigate(to, options);

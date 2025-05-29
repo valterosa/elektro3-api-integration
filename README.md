@@ -95,6 +95,83 @@ npm run build
 vercel --prod
 ```
 
+## Implantação no Vercel
+
+Para implantar esta aplicação no Vercel e garantir que esteja sempre disponível na loja Shopify, siga estas etapas:
+
+### Pré-requisitos
+
+1. Conta no Vercel
+2. Repositório Git (GitHub, GitLab ou Bitbucket)
+3. Chaves de API do Shopify e Elektro3
+
+### Passos para Implantação
+
+1. **Prepare o Ambiente**:
+
+   ```bash
+   # Clone o repositório (se ainda não tiver feito)
+   git clone <seu-repositório>
+   cd elektro3-api-integration
+
+   # Instale as dependências
+   npm install
+   ```
+
+2. **Configure as Variáveis de Ambiente no Vercel**:
+
+   - Copie as variáveis de `.env.production` para as configurações do seu projeto no Vercel
+   - Certifique-se de substituir com seus valores reais:
+     - `SHOPIFY_API_KEY`
+     - `SHOPIFY_API_SECRET`
+     - `SHOPIFY_APP_URL` (URL do seu deploy no Vercel)
+     - `ELEKTRO3_CLIENT_ID`
+     - `ELEKTRO3_SECRET_KEY`
+     - `ELEKTRO3_USERNAME`
+     - `ELEKTRO3_PASSWORD`
+     - `DATABASE_URL` (Se estiver usando um banco de dados externo)
+
+3. **Implante no Vercel**:
+
+   ```bash
+   # Faça commit das alterações
+   git add .
+   git commit -m "Configurado para deploy no Vercel"
+   git push
+
+   # Opção 1: Use a interface do Vercel para importar o projeto
+   # Vá para vercel.com, importe o repositório, e configure as variáveis de ambiente
+
+   # Opção 2: Use a CLI do Vercel (se preferir)
+   npm install -g vercel
+   vercel login
+   vercel
+   ```
+
+4. **Configure a URL no Shopify**:
+
+   - Acesse o [Portal de Parceiros Shopify](https://partners.shopify.com)
+   - Acesse seu app e atualize a URL para o endereço do Vercel
+   - Atualize as URLs de redirecionamento OAuth para incluir seu domínio Vercel
+
+5. **Teste a Aplicação**:
+   - Instale o aplicativo em uma loja de teste
+   - Verifique se todas as funcionalidades estão operando corretamente
+
+### Solução de Problemas
+
+- Se enfrentar erros CORS, verifique as configurações no arquivo `vercel.json`
+- Problemas com webhooks? Verifique se os endpoints estão acessíveis e registrados corretamente
+- Erros de autenticação? Confirme se as variáveis de ambiente estão configuradas corretamente
+
+### Manutenção
+
+Para atualizar a aplicação após a implantação inicial:
+
+1. Faça suas alterações no código
+2. Faça commit e push para o repositório
+3. O Vercel detectará as mudanças e fará a reimplantação automaticamente
+
 ## Estrutura do Projeto
 
 - `/app` - Código principal da aplicação Remix

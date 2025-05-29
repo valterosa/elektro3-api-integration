@@ -2,7 +2,6 @@ import { vitePlugin as remix } from "@remix-run/dev";
 import { defineConfig } from "vite";
 import { installGlobals } from "@remix-run/node";
 import { resolve } from "path";
-import { vercelPreset } from "@vercel/remix/vite";
 
 // Instalar globais do Remix para compatibilidade
 installGlobals();
@@ -31,9 +30,8 @@ export default defineConfig({
     allowedHosts: [
       "localhost",
       "127.0.0.1",
-      "protocol-point-cloud-contacting.trycloudflare.com",
-      ".trycloudflare.com", // Permite qualquer subdomínio do cloudflare
-      ".ngrok.io", // Para caso use ngrok também
+      "elektro3-api-integration-3rtt7qtzr-electro-malho.vercel.app",
+      ".vercel.app", // Permite qualquer subdomínio do Vercel
     ],
     hmr: {
       // Configuração para evitar conflito de porta
@@ -44,13 +42,14 @@ export default defineConfig({
       overlay: true, // Mostrar overlay em caso de erros
     },
   },
-
   // Configurações específicas para build do servidor
   ssr: {
     noExternal: [
       // Pacotes que precisam ser incluídos no bundle do servidor
       "@shopify/shopify-app-remix",
       "@shopify/polaris",
+      "@shopify/app-bridge-react",
+      "@shopify/app-bridge",
       /^@shopify\/app-bridge.*$/,
       // Adicionar quaisquer outros que causem problemas
     ],
@@ -58,21 +57,32 @@ export default defineConfig({
     format: "esm",
   },
 
+  // Configurações de build
+  build: {
+    rollupOptions: {
+      external: [
+        // Não externalizar app-bridge para o cliente
+      ],
+    },
+  },
   // Configuração de otimização
   optimizeDeps: {
     // Forçar a inclusão de todos os módulos compatíveis
-    include: ["react", "react-dom", "@shopify/polaris", "isbot"],
+    include: [
+      "react",
+      "react-dom",
+      "@shopify/polaris",
+      "@shopify/app-bridge-react",
+      "@shopify/app-bridge",
+      "isbot",
+    ],
   },
-
   // Plugins
   plugins: [
     // Plugin do Remix configurado para ambiente Shopify
     remix({
       // Ignorar arquivos que não devem ser tratados como rotas
       ignoredRouteFiles: ["**/.*", "**/*.test.{js,jsx,ts,tsx}"],
-
-      // Adicionar o preset do Vercel para melhor compatibilidade
-      presets: [vercelPreset()],
 
       // Habilitar novas funcionalidades do Remix V3
       future: {
