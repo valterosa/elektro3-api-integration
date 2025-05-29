@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "prisma generate && node prisma-setup.js && node fix-shopify-json-import.js && remix vite:build",
-    "vercel-build": "node vercel-db-setup.js && npx prisma generate && node fix-shopify-json-import.js && remix vite:build",
+    "vercel-build": "node vercel-db-setup.js && npx prisma generate && node fix-shopify-json-import.js && remix vite:build && node prepare-vercel-build.js",
     "deploy:vercel": "node deploy-to-vercel.js",
     "dev": "set NODE_ENV=development&& node server.mjs",
     "dev:local": "node dev-server.js",
