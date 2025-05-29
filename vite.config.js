@@ -20,8 +20,7 @@ export default defineConfig({
     alias: {
       // Adicionar o alias '~' para apontar para a pasta app
       "~": resolve(__dirname, "app"),
-    },
-  },
+    },  },
   // Configurações de servidor de desenvolvimento
   server: {
     port: parseInt(process.env.PORT || "3000"),
@@ -30,9 +29,8 @@ export default defineConfig({
     allowedHosts: [
       "localhost",
       "127.0.0.1",
-      "protocol-point-cloud-contacting.trycloudflare.com",
-      ".trycloudflare.com", // Permite qualquer subdomínio do cloudflare
-      ".ngrok.io", // Para caso use ngrok também
+      "elektro3-api-integration-3rtt7qtzr-electro-malho.vercel.app",
+      ".vercel.app", // Permite qualquer subdomínio do Vercel
     ],
     hmr: {
       // Configuração para evitar conflito de porta
