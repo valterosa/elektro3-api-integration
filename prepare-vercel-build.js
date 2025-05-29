@@ -1,5 +1,5 @@
 // prepare-vercel-build.js
-import { copyFileSync, existsSync } from "fs";
+import { writeFileSync, existsSync } from "fs";
 import { resolve } from "path";
 
 console.log("Preparing build files for Vercel deployment...");
@@ -8,10 +8,17 @@ try {
   const serverIndexPath = resolve("build/server/index.js");
   const serverMjsPath = resolve("build/server/server-index.mjs");
 
-  if (existsSync(serverIndexPath)) {
-    copyFileSync(serverIndexPath, serverMjsPath);
+  if (existsSync(serverIndexPath)) {    // Create a proper server handler for Vercel
+    const serverHandlerContent = `// Auto-generated server handler for Vercel
+import { createRequestHandler } from "@remix-run/node";
+import * as serverBuild from "./index.js";
+
+export default createRequestHandler({ build: serverBuild });
+`;
+
+    writeFileSync(serverMjsPath, serverHandlerContent);
     console.log(
-      "✅ Copied build/server/index.js to build/server/server-index.mjs"
+      "✅ Created proper server handler at build/server/server-index.mjs"
     );
   } else {
     console.error("❌ build/server/index.js not found");
